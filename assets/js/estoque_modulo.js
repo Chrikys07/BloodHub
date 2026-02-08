@@ -38,6 +38,12 @@
   // ===== Persistência local =====
   const KEY = "bloodhub_mov_v1";
 
+  // cache em memória (evita perder alterações por não chamar storeSet)
+  let STORE = null;
+  function storeLoad(){ STORE = storeGet(); return STORE; }
+  function storeSave(){ try{ storeSet(STORE || {}); }catch(e){ console.warn(e); } }
+
+
   function getUserLocal() { return "LOCAL"; }
 
   function storeGet() {
@@ -46,12 +52,15 @@
   }
   function storeSet(obj) { localStorage.setItem(KEY, JSON.stringify(obj)); }
 
+  // carrega o storage uma vez
+  storeLoad();
+
   function bucket(dateISO) {
     const local = getUserLocal();
-    const s = storeGet();
+    const s = (STORE ||= storeGet());
     s[local] ||= {};
     s[local][dateISO] ||= { producao: [], liberacao: [], transformacoes: [], desprezo: [], inventario: [] };
-    storeSet(s);
+    storeSave();
     return s[local][dateISO];
   }
 
@@ -191,6 +200,7 @@
       card.querySelector('[data-act="del"]').addEventListener("click", (e) => {
         e.preventDefault();
         b.producao.splice(idx, 1);
+        storeSave();
         renderProd(dateISO);
       });
 
@@ -198,6 +208,7 @@
         inp.addEventListener("change", () => {
           const f = inp.dataset.f;
           r[f] = (f === "qtd") ? Number(inp.value || 0) : inp.value;
+          storeSave();
         });
       });
 
@@ -239,6 +250,7 @@
       card.querySelector('[data-act="del"]').addEventListener("click", (e) => {
         e.preventDefault();
         b.liberacao.splice(idx, 1);
+        storeSave();
         renderLib(dateISO);
       });
 
@@ -246,6 +258,7 @@
         inp.addEventListener("change", () => {
           const f = inp.dataset.f;
           r[f] = (f === "qtd") ? Number(inp.value || 0) : inp.value;
+          storeSave();
         });
       });
 
@@ -299,6 +312,7 @@
       card.querySelector('[data-act="del"]').addEventListener("click", (e) => {
         e.preventDefault();
         b.transformacoes.splice(idx, 1);
+        storeSave();
         renderTransf(dateISO);
       });
 
@@ -355,6 +369,7 @@
       card.querySelector('[data-act="del"]').addEventListener("click", (e) => {
         e.preventDefault();
         b.desprezo.splice(idx, 1);
+        storeSave();
         renderDesp(dateISO);
       });
 
@@ -362,6 +377,7 @@
         inp.addEventListener("change", () => {
           const f = inp.dataset.f;
           r[f] = (f === "qtd") ? Number(inp.value || 0) : inp.value;
+          storeSave();
         });
       });
 
@@ -403,6 +419,7 @@
       card.querySelector('[data-act="del"]').addEventListener("click", (e) => {
         e.preventDefault();
         b.inventario.splice(idx, 1);
+        storeSave();
         renderInv(dateISO);
       });
 
@@ -423,11 +440,13 @@
   function addProd(dateISO) {
     const b = bucket(dateISO);
     b.producao.push({ tipo: "CH", abo: "O", rh: "+", qtd: 0 });
+    storeSave();
     renderProd(dateISO);
   }
   function addLib(dateISO) {
     const b = bucket(dateISO);
     b.liberacao.push({ tipo: "CH", abo: "O", rh: "+", qtd: 0, dataProd: dateISO });
+    storeSave();
     renderLib(dateISO);
   }
   function addTransf(dateISO) {
@@ -435,16 +454,19 @@
     const firstDest = Array.from(MAP_TRANSF[firstOrig] || [])[0] || "";
     const b = bucket(dateISO);
     b.transformacoes.push({ origemTipo: firstOrig, destTipo: firstDest, abo: "O", rh: "+", qtdOrigem: 0, qtdDestino: 0, obs: "" });
+    storeSave();
     renderTransf(dateISO);
   }
   function addDesp(dateISO) {
     const b = bucket(dateISO);
     b.desprezo.push({ tipo: "CH", abo: "O", rh: "+", qtd: 0, motivo: "" });
+    storeSave();
     renderDesp(dateISO);
   }
   function addInv(dateISO) {
     const b = bucket(dateISO);
     b.inventario.push({ tipo: "CH", abo: "O", rh: "+", delta: 0, obs: "" });
+    storeSave();
     renderInv(dateISO);
   }
 
@@ -485,6 +507,14 @@
         setTimeout(() => hidePill($("#statusProd")), 900);
         return;
       }
+
+      if (t.closest("#btnSalvarProd")) {
+        e.preventDefault();
+        storeSave();
+        pill($("#statusProd"), "Produção salva.", "ok");
+        setTimeout(() => hidePill($("#statusProd")), 1200);
+        return;
+      }
       if (t.closest("#btnAddProd")) {
         e.preventDefault();
         const dt = $("#dtProducao")?.value || todayISO();
@@ -501,6 +531,14 @@
         forceEditorVisible("#editorLib", "#vazioLib", "#listaLib", "Nenhum lançamento. Clique em “Inserir liberação”.");
         pill($("#statusLib"), "Liberação carregada.", "info");
         setTimeout(() => hidePill($("#statusLib")), 900);
+        return;
+      }
+
+      if (t.closest("#btnSalvarLib")) {
+        e.preventDefault();
+        storeSave();
+        pill($("#statusLib"), "Liberação salva.", "ok");
+        setTimeout(() => hidePill($("#statusLib")), 1200);
         return;
       }
       if (t.closest("#btnAddLib")) {
@@ -521,6 +559,14 @@
         setTimeout(() => hidePill($("#statusTransf")), 900);
         return;
       }
+
+      if (t.closest("#btnSalvarTransf")) {
+        e.preventDefault();
+        storeSave();
+        pill($("#statusTransf"), "Transformações salvas.", "ok");
+        setTimeout(() => hidePill($("#statusTransf")), 1200);
+        return;
+      }
       if (t.closest("#btnAddTransf")) {
         e.preventDefault();
         const dt = $("#dtTransf")?.value || todayISO();
@@ -539,6 +585,14 @@
         setTimeout(() => hidePill($("#statusDesp")), 900);
         return;
       }
+
+      if (t.closest("#btnSalvarDesp")) {
+        e.preventDefault();
+        storeSave();
+        pill($("#statusDesp"), "Desprezo salvo.", "ok");
+        setTimeout(() => hidePill($("#statusDesp")), 1200);
+        return;
+      }
       if (t.closest("#btnAddDesp")) {
         e.preventDefault();
         const dt = $("#dtDesp")?.value || todayISO();
@@ -555,6 +609,14 @@
         forceEditorVisible("#editorInv", "#vazioInv", "#listaInv", "Nenhum lançamento. Clique em “Inserir inventário”.");
         pill($("#statusInv"), "Inventário carregado.", "info");
         setTimeout(() => hidePill($("#statusInv")), 900);
+        return;
+      }
+
+      if (t.closest("#btnSalvarInv")) {
+        e.preventDefault();
+        storeSave();
+        pill($("#statusInv"), "Inventário salvo.", "ok");
+        setTimeout(() => hidePill($("#statusInv")), 1200);
         return;
       }
       if (t.closest("#btnAddInv")) {

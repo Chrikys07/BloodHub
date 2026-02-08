@@ -15,218 +15,190 @@ $user = $_SESSION['user'] ?? ["name" => "Usuário", "role" => "user", "username"
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BLoodHub • Sistema</title>
 
-  <link rel="stylesheet" href="/bloodHub/assets/css/styles.css?v=2" />
-  <link rel="stylesheet" href="/bloodHub/assets/css/app.css?v=3" />
+  <link rel="stylesheet" href="/bloodHub/assets/css/styles.css?v=10" />
+  <link rel="stylesheet" href="/bloodHub/assets/css/app.css?v=10" />
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">BH</div>
-        <div class="brand-text">
-          <div class="brand-title">BLoodHub</div>
-          <div class="brand-subtitle">Gestão de Estoque de Hemocomponentes</div>
+  <header class="app-topbar" role="banner">
+    <div class="app-topbar-inner">
+      <div class="app-brand" aria-label="BloodHub">
+        <div class="app-brand-mark" aria-hidden="true">BH</div>
+        <div class="app-brand-text">
+          <div class="app-brand-title">BloodHub</div>
+          <div class="app-brand-subtitle">Gestão de Estoque de Hemocomponentes</div>
         </div>
       </div>
 
-      <div class="topbar-right app-top-right">
-        <span class="pill">
-          <?php echo htmlspecialchars($user["name"]); ?> • <?php echo htmlspecialchars($user["role"]); ?>
-        </span>
-        <a class="pill pill-link" href="logout.php">Sair</a>
+      <div class="app-topbar-right">
+        <div class="userchip" id="userChip" data-username="<?php echo htmlspecialchars($user["username"]); ?>">
+          <div class="avatar" aria-hidden="true"><?php echo strtoupper(substr($user["name"],0,1)); ?></div>
+          <div class="userchip-meta">
+            <div class="userchip-name"><?php echo htmlspecialchars($user["name"]); ?></div>
+            <div class="userchip-sub"><?php echo htmlspecialchars($user["role"]); ?> • <?php echo htmlspecialchars($user["username"]); ?></div>
+          </div>
+          <button class="iconbtn" id="btnUserMenu" type="button" aria-label="Abrir menu do usuário">▾</button>
+        </div>
+
+        <div class="usermenu" id="userMenu" hidden>
+          <a class="usermenu-item" href="#" aria-disabled="true" onclick="return false;">Perfil (em breve)</a>
+          <a class="usermenu-item danger" href="logout.php">Sair</a>
+        </div>
       </div>
     </div>
   </header>
 
-  <main class="app">
+  <main class="shell" data-username="<?php echo htmlspecialchars($user["username"]); ?>">
     <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="sidebar-head">
-        <div class="sidebar-title">Menu</div>
-        <div class="sidebar-sub">Sessão: <?php echo htmlspecialchars($user["username"]); ?></div>
+    <aside class="app-sidebar" aria-label="Menu principal">
+      <div class="sidebar-section">
+        <div class="sidebar-h">Navegação</div>
+        <div class="sidebar-s">Sessão: <?php echo htmlspecialchars($user["username"]); ?></div>
       </div>
 
-      <nav class="nav">
-        <!-- ESTOQUE (com submenu) -->
-        <button class="nav-item active" id="navEstoque" data-view="estoque" aria-expanded="true">
-          <span class="dot"></span>
-          Estoque
+      <nav class="app-nav" role="navigation">
+        <button class="nav-group" id="navEstoque" type="button" aria-expanded="true">
+          <span class="nav-ico" aria-hidden="true">▦</span>
+          <span class="nav-label">Estoque</span>
           <span class="nav-caret" aria-hidden="true">▾</span>
         </button>
 
         <div class="nav-sub open" id="subEstoque">
-          <button type="button" class="nav-sub-item active" data-subview="producao">Produção</button>
-          <button type="button" class="nav-sub-item" data-subview="liberacao">Liberação</button>
-          <button type="button" class="nav-sub-item" data-subview="transformacao">Transformação</button>
-          <button type="button" class="nav-sub-item" data-subview="desprezo">Desprezo</button>
-          <button type="button" class="nav-sub-item" data-subview="inventario">Inventário</button>
+          <button type="button" class="nav-sub-item" data-route="producao">
+            <span class="sub-dot" aria-hidden="true"></span>
+            Produção
+          </button>
+          <!-- Mantidos para fases futuras (não visíveis/ativos nesta versão) -->
+          <button type="button" class="nav-sub-item is-hidden" data-route="liberacao" disabled>Liberação</button>
+          <button type="button" class="nav-sub-item is-hidden" data-route="transformacao" disabled>Transformação</button>
+          <button type="button" class="nav-sub-item is-hidden" data-route="desprezo" disabled>Desprezo</button>
+          <button type="button" class="nav-sub-item is-hidden" data-route="inventario" disabled>Inventário</button>
         </div>
-
-        <!-- outros itens (placeholder) -->
-        <button class="nav-item" data-view="dashboard" disabled title="Em breve">
-          <span class="dot"></span>
-          Dashboard
-        </button>
-        <button class="nav-item" data-view="relatorios" disabled title="Em breve">
-          <span class="dot"></span>
-          Relatórios
-        </button>
-        <button class="nav-item" data-view="config" disabled title="Em breve">
-          <span class="dot"></span>
-          Configurações
-        </button>
       </nav>
 
-      <div class="sidebar-foot">
-        <div class="small-muted">© <?php echo date('Y'); ?> BLoodHub</div>
+      <div class="sidebar-section sidebar-foot">
+        <div class="small-muted">© <?php echo date('Y'); ?> BloodHub</div>
         <div class="small-muted">Segurança & rastreabilidade</div>
       </div>
     </aside>
 
     <!-- CONTENT -->
-    <section class="content">
+    <section class="app-content" aria-label="Conteúdo">
       <div class="content-head">
         <div>
-          <div class="content-title" id="viewTitle">Estoque • Produção</div>
-          <div class="content-sub" id="viewSub">Movimentações do estoque (layout FC0577)</div>
+          <div class="content-title" id="viewTitle">Início</div>
+          <div class="content-sub" id="viewSub">Selecione uma opção no menu para começar.</div>
         </div>
-
-        <!-- aqui a gente não usa mais os botões do estoque antigo -->
-        <div class="head-actions" id="headActions" style="display:none;"></div>
       </div>
 
-      <!-- VIEW: ESTOQUE -->
-      <div class="view" id="view-estoque">
-        <!-- PRODUÇÃO -->
-        <section class="estoque-section" id="sec-producao">
-          <h2 class="h2">Produção</h2>
-
-          <div class="row-actions">
-            <label class="field">
-              <span>Data</span>
-              <input type="date" id="dtProducao" />
-            </label>
-            <button class="btn" id="btnBuscarProd">Buscar</button>
-            <span class="pill" id="statusProd" style="display:none;"></span>
-          </div>
-
-          <!-- OBS: o editor fica oculto até clicar em Buscar -->
-          <div class="editor" id="editorProd" style="display:none;">
-            <div class="toolbar">
-              <button class="btn-secondary" id="btnAddProd">Inserir hemocomponente produzido</button>
-              <button class="btn" id="btnSalvarProd">Finalizar inserção de dados</button>
+      <!-- HOME (neutro) -->
+      <div class="view" id="view-home">
+        <div class="welcome-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Bem-vindo(a)</div>
+              <div class="panel-badge">Ambiente de testes</div>
             </div>
-            <div class="divider"></div>
-            <div class="list" id="listaProd"></div>
-          </div>
-        </section>
-
-        <!-- LIBERAÇÃO -->
-        <section class="estoque-section" id="sec-liberacao" style="display:none;">
-          <h2 class="h2">Liberação</h2>
-
-          <div class="row-actions">
-            <label class="field">
-              <span>Data</span>
-              <input type="date" id="dtLiberacao" />
-            </label>
-            <button class="btn" id="btnBuscarLib">Buscar</button>
-            <span class="pill" id="statusLib" style="display:none;"></span>
-          </div>
-
-          <div class="editor" id="editorLib" style="display:none;">
-            <div class="toolbar">
-              <button class="btn-secondary" id="btnAddLib">Inserir liberação</button>
-              <button class="btn" id="btnSalvarLib">Finalizar inserção de dados</button>
+            <p class="muted">
+              Esta versão prioriza o novo layout (login → navegação → Produção) e usa persistência <strong>local</strong> para simulação.
+              Em etapas futuras, o mesmo fluxo será conectado ao banco na nuvem.
+            </p>
+            <div class="kpi-row">
+              <div class="kpi">
+                <div class="kpi-label">Módulo</div>
+                <div class="kpi-value">Estoque</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Primeira entrega</div>
+                <div class="kpi-value">Produção</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Persistência</div>
+                <div class="kpi-value">Local (simulação)</div>
+              </div>
             </div>
-            <div class="divider"></div>
-            <div class="list" id="listaLib"></div>
-          </div>
-        </section>
-
-        <!-- TRANSFORMAÇÃO -->
-        <section class="estoque-section" id="sec-transformacao" style="display:none;">
-          <h2 class="h2">Transformação</h2>
-
-          <div class="row-actions">
-            <label class="field">
-              <span>Data</span>
-              <input type="date" id="dtTransf" />
-            </label>
-            <button class="btn" id="btnBuscarTransf">Buscar</button>
-            <span class="pill" id="statusTransf" style="display:none;"></span>
           </div>
 
-          <div class="editor" id="editorTransf" style="display:none;">
-            <div class="toolbar">
-              <button class="btn-secondary" id="btnAddTransf">Inserir transformação</button>
-              <button class="btn" id="btnSalvarTransf">Finalizar inserção de dados</button>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Atalhos</div>
+              <div class="panel-badge">Desktop first</div>
             </div>
-            <div class="divider"></div>
-            <div class="list" id="listaTransf"></div>
-          </div>
-        </section>
-
-        <!-- DESPREZO -->
-        <section class="estoque-section" id="sec-desprezo" style="display:none;">
-          <h2 class="h2">Desprezo</h2>
-
-          <div class="row-actions">
-            <label class="field">
-              <span>Data</span>
-              <input type="date" id="dtDesp" />
-            </label>
-            <button class="btn" id="btnBuscarDesp">Buscar</button>
-            <span class="pill" id="statusDesp" style="display:none;"></span>
-          </div>
-
-          <div class="editor" id="editorDesp" style="display:none;">
-            <div class="toolbar">
-              <button class="btn-secondary" id="btnAddDesp">Inserir desprezo</button>
-              <button class="btn" id="btnSalvarDesp">Finalizar inserção de dados</button>
+            <div class="shortcut-row">
+              <button class="btn" type="button" data-shortcut="producao">Abrir Produção</button>
+              <button class="btn-secondary" type="button" disabled>Outros módulos (em breve)</button>
             </div>
-            <div class="divider"></div>
-            <div class="list" id="listaDesp"></div>
           </div>
-        </section>
-
-        <!-- INVENTÁRIO -->
-        <section class="estoque-section" id="sec-inventario" style="display:none;">
-          <h2 class="h2">Inventário</h2>
-
-          <div class="row-actions">
-            <label class="field">
-              <span>Data</span>
-              <input type="date" id="dtInv" />
-            </label>
-            <button class="btn" id="btnBuscarInv">Buscar</button>
-            <span class="pill" id="statusInv" style="display:none;"></span>
-          </div>
-
-          <div class="editor" id="editorInv" style="display:none;">
-            <div class="toolbar">
-              <button class="btn-secondary" id="btnAddInv">Inserir inventário</button>
-              <button class="btn" id="btnSalvarInv">Finalizar inserção de dados</button>
-            </div>
-            <div class="divider"></div>
-            <div class="list" id="listaInv"></div>
-          </div>
-        </section>
-
+        </div>
       </div>
 
-      <!-- outras views (placeholder) -->
-      <div class="view" id="view-dashboard" hidden></div>
-      <div class="view" id="view-relatorios" hidden></div>
-      <div class="view" id="view-config" hidden></div>
+      <!-- PRODUÇÃO -->
+      <div class="view" id="view-producao" hidden>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Produção diária</div>
+              <div class="muted" style="margin-top:4px;">Informe a data e clique em <strong>Buscar</strong>.</div>
+            </div>
+            <div class="panel-badge" id="prodBadge">—</div>
+          </div>
+
+          <div class="filterbar">
+            <label class="field">
+              <span>Data</span>
+              <input class="input" type="date" id="prodDate" />
+            </label>
+            <button class="btn" id="btnProdBuscar" type="button">Buscar</button>
+            <div class="grow"></div>
+            <span class="pill" id="prodStatus" style="display:none;"></span>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Formulário só aparece após Buscar (e confirmação quando não existir) -->
+          <div id="prodFormWrap" style="display:none;">
+            <div class="table-wrap">
+              <table class="tbl tbl-compact" aria-label="Produção de hemocomponentes">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;">Hemocomponente</th>
+                    <th style="width:180px;">Quantidade</th>
+                  </tr>
+                </thead>
+                <tbody id="prodTbody"></tbody>
+              </table>
+            </div>
+
+            <div class="actions-row">
+              <button class="btn" id="btnProdSalvar" type="button">Salvar</button>
+              <button class="btn-secondary" id="btnProdLimpar" type="button">Limpar campos</button>
+              <span class="muted" id="prodHint">Os dados ficam salvos apenas neste navegador (simulação).</span>
+            </div>
+          </div>
+        </section>
+      </div>
 
     </section>
   </main>
 
-  <!-- IMPORTANTE:
-       Removi o estoque.js antigo daqui, porque ele procura tabs/tabela que não existem mais nessa tela.
-       Agora quem controla tudo é o estoque_modulo.js -->
-  <script src="/bloodHub/assets/js/estoque_modulo.js?v=1"></script>
+  <!-- Modal: confirmação de criação para data sem dados -->
+  <div class="modal" id="confirmModal" hidden>
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="confirmTitle">Confirmação</div>
+          <div class="modal-sub" id="confirmMsg">—</div>
+        </div>
+        <button class="iconbtn" type="button" data-close="1" aria-label="Fechar">✕</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="confirmYes" type="button">Sim</button>
+        <button class="btn-secondary" id="confirmNo" type="button">Não</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/bloodHub/assets/js/app_shell.js?v=10"></script>
 </body>
 </html>

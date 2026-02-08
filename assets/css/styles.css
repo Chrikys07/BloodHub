@@ -1,17 +1,30 @@
+/* ============================================================
+ * BloodHub • Tema (inspirado no sistema modelo de referência)
+ * - Escuro mais "aparente" (menos preto chapado)
+ * - Contraste, espaçamento e tipografia corporativos
+ * ============================================================ */
+
 :root{
-  --bg:#0b1220;
-  --text:#e5e7eb;
-  --muted:rgba(229,231,235,.72);
-  --line:rgba(255,255,255,.10);
-  --card:rgba(255,255,255,.06);
-  --card2:rgba(255,255,255,.085);
+  --bg0:#0b1220;
+  --bg1:#0f172a;
+  --surface:#111b32;
+  --surface2:#152041;
+  --text:#e7edf7;
+  --muted:rgba(231,237,247,.70);
+  --muted2:rgba(231,237,247,.55);
+  --line:rgba(231,237,247,.10);
+  --line2:rgba(231,237,247,.16);
+
   --accent:#ef4444;
   --accent2:#f97316;
+
   --shadow:0 18px 50px rgba(0,0,0,.45);
-  --radius:18px;
-  --maxw:1080px;
-  --topbarH:78px;
-  --font:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  --shadowSoft:0 12px 30px rgba(0,0,0,.28);
+  --radius:16px;
+  --radius2:14px;
+  --maxw:1280px;
+  --topbarH:64px;
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
 *{box-sizing:border-box}
@@ -21,21 +34,28 @@ body{
   font-family:var(--font);
   color:var(--text);
   background:
-    radial-gradient(900px 520px at 12% 15%, rgba(239,68,68,.22), transparent 60%),
-    radial-gradient(900px 520px at 88% 75%, rgba(249,115,22,.18), transparent 60%),
-    linear-gradient(160deg, #0b1220 0%, #060a12 100%);
+    radial-gradient(900px 520px at 12% 15%, rgba(59,130,246,.14), transparent 60%),
+    radial-gradient(900px 520px at 88% 75%, rgba(239,68,68,.14), transparent 60%),
+    linear-gradient(160deg, var(--bg1) 0%, #070b14 100%);
 }
 
-/* TOPBAR */
-.topbar{
+/* util */
+.muted{ color: var(--muted); }
+.grow{ flex: 1 1 auto; }
+.is-hidden{ display:none !important; }
+
+/* TOPBAR (login antigo mantém compatibilidade) */
+.topbar,
+.app-topbar{
   height:var(--topbarH);
   display:flex;
   align-items:center;
-  border-bottom:1px solid var(--line);
+  border-bottom:1px solid var(--line2);
   backdrop-filter: blur(12px);
-  background: rgba(0,0,0,.22);
+  background: linear-gradient(180deg, rgba(6,10,18,.85), rgba(6,10,18,.55));
 }
-.topbar-inner{
+.topbar-inner,
+.app-topbar-inner{
   width:min(var(--maxw), calc(100% - 32px));
   margin:0 auto;
   display:flex;
@@ -43,24 +63,32 @@ body{
   justify-content:space-between;
   gap:16px;
 }
-.brand{display:flex; align-items:center; gap:12px;}
-.brand-mark{
-  width:44px;height:44px;border-radius:16px;
+.brand,
+.app-brand{display:flex; align-items:center; gap:12px;}
+.brand-mark,
+.app-brand-mark{
+  width:40px;height:40px;border-radius:12px;
   display:grid;place-items:center;
   font-weight:900; letter-spacing:.5px;
   color:#0b1220;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
-  box-shadow:0 14px 36px rgba(239,68,68,.22);
+  box-shadow:0 14px 36px rgba(239,68,68,.18);
 }
-.brand-title{font-weight:900;font-size:16px;line-height:1.1}
-.brand-subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+.brand-title,
+.app-brand-title{font-weight:900;font-size:15px;line-height:1.1; letter-spacing:.2px;}
+.brand-subtitle,
+.app-brand-subtitle{font-size:12px;color:var(--muted);margin-top:2px}
 .pill{
   padding:8px 10px;border-radius:999px;
   border:1px solid var(--line);
-  background:rgba(255,255,255,.05);
+  background:rgba(255,255,255,.04);
   color:var(--muted);
   font-size:12px;
 }
+.pill.ok{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); color: rgba(231,237,247,.9); }
+.pill.warn{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); color: rgba(231,237,247,.9); }
+.pill.info{ border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.10); color: rgba(231,237,247,.9); }
+.pill.muted{ border-color: var(--line); background: rgba(255,255,255,.03); color: var(--muted); }
 
 /* PAGE */
 .page{
@@ -78,9 +106,9 @@ body{
 }
 
 .login-card,.side-card{
-  border:1px solid var(--line);
+  border:1px solid var(--line2);
   border-radius:var(--radius);
-  background:linear-gradient(180deg,var(--card),rgba(255,255,255,.03));
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   box-shadow:var(--shadow);
 }
 .login-card{padding:22px}
@@ -102,16 +130,35 @@ input{
   width:100%;
   padding:12px 12px;
   border-radius:14px;
-  border:1px solid var(--line);
+  border:1px solid var(--line2);
   outline:none;
-  background:rgba(0,0,0,.22);
+  background: rgba(11,18,32,.55);
   color:var(--text);
   font-size:14px;
 }
+
+/* inputs genéricos do app (compatível com <input>, <select>) */
+.input{
+  width:100%;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid var(--line2);
+  outline:none;
+  background: rgba(3,6,12,.42);
+  color:var(--text);
+  font-size:14px;
+}
+select.input{ padding:11px 12px; }
+.input::placeholder{color:rgba(231,237,247,.40)}
+.input:focus{
+  border-color:rgba(59,130,246,.55);
+  box-shadow:0 0 0 4px rgba(59,130,246,.16);
+}
+.input.qty{ text-align:center; }
 input::placeholder{color:rgba(229,231,235,.40)}
 input:focus{
-  border-color:rgba(249,115,22,.55);
-  box-shadow:0 0 0 4px rgba(249,115,22,.14);
+  border-color:rgba(59,130,246,.55);
+  box-shadow:0 0 0 4px rgba(59,130,246,.14);
 }
 .hint{color:rgba(229,231,235,.55);font-size:12px}
 
@@ -119,7 +166,7 @@ input:focus{
 .ghost{
   padding:12px 12px;
   border-radius:14px;
-  border:1px solid var(--line);
+  border:1px solid var(--line2);
   background:rgba(255,255,255,.04);
   color:var(--text);
   cursor:pointer;
@@ -140,7 +187,7 @@ input:focus{
 
 .btn{
   padding:12px 14px;
-  border-radius:16px;
+  border-radius:14px;
   border:none;
   cursor:pointer;
   color:#0b1220;
