@@ -1,0 +1,48 @@
+<?php
+declare(strict_types=1);
+namespace BloodHub\Controllers;
+
+use BloodHub\Core\{AdminGuard,Auth,Csrf,Database,Flash,Permission};
+use BloodHub\Services\BacteriologyService;
+use BloodHub\Services\PositiveBacteriologySampleService;
+use PDO;
+
+final class TransfusionReactionController
+{
+    public static function index():void
+    {
+        AdminGuard::enforce('transfusion_reactions.view');$f=self::filters();$pdo=Database::connection();
+        $all=BacteriologyService::individualSamples($f,'transfusion_reaction');$retests=BacteriologyService::retests($f,'transfusion_reaction');foreach($all as&$item)$item['tests']=BacteriologyService::individualTestHistory((int)$item['id'],'transfusion_reaction');unset($item);
+        $page=max(1,(int)($_GET['page']??1));$total=count($all);$samples=array_slice($all,($page-1)*10,10);
+        $positiveSamples=PositiveBacteriologySampleService::all([],'transfusion_reaction');$counts=['waiting'=>count(array_filter($all,static fn($s)=>empty($s['saved_result']))),'retests'=>count($retests),'positive'=>count($positiveSamples),'completed'=>(int)$pdo->query("SELECT COUNT(*) FROM samples s JOIN sample_tests st ON st.sample_id=s.id JOIN tests t ON t.id=st.test_id AND t.code='BACTERIOLOGY' WHERE s.purpose='transfusion_reaction' AND st.status='completed'")->fetchColumn()];
+        $openPositive=null;$relatedComponents=[];$positiveComponents=[];$positiveUnits=[];if(!empty($_GET['open_positive'])){$openPositive=PositiveBacteriologySampleService::find((int)$_GET['open_positive']);if(($openPositive['purpose']??'')!=='transfusion_reaction'){$openPositive=null;}else{$relatedComponents=PositiveBacteriologySampleService::relatedComponents((int)$_GET['open_positive']);$positiveComponents=PositiveBacteriologySampleService::activeComponents();$positiveUnits=PositiveBacteriologySampleService::activeUnitsForClient((int)($openPositive['client_id']??0));}}
+        $components=$pdo->query("SELECT id,code,name FROM blood_components WHERE status='active' ORDER BY code")->fetchAll(PDO::FETCH_ASSOC);$origins=$pdo->query("SELECT id,name FROM units WHERE status='active' ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+        $pageTitle='Reações Transfusionais';$pageSubtitle='Gerencie as análises bacteriológicas das amostras encaminhadas por reação transfusional.';$csrf=Csrf::token();$flash=Flash::pull();$userAuth=Auth::user();$canEdit=Permission::can('transfusion_reactions.edit');require dirname(__DIR__).'/Views/transfusion_reactions/index.php';
+    }
+    public static function save():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();try{$state=BacteriologyService::saveTransfusionTest((int)($_POST['sample_id']??0),(int)($_POST['result_id']??0),(string)($_POST['result']??''),$_POST['identified_bacteria']??null,$_POST['notes']??null,!empty($_POST['complete']));Flash::set('success',$state==='retest'?'Positivo registrado; reteste obrigatório criado.':($state==='completed'?'Teste negativo concluído.':'Resultado parcial salvo sem concluir.'));}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::back();}
+    public static function addTest():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();try{BacteriologyService::addIndividualTest((int)($_POST['sample_id']??0),'transfusion_reaction');Flash::set('success','Novo teste individual adicionado; o histórico anterior foi preservado.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::back();}
+    public static function retest():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();try{$retestId=(int)($_POST['retest_id']??0);$q=Database::connection()->prepare("SELECT s.purpose FROM bacteriology_retests r JOIN samples s ON s.id=r.sample_id WHERE r.id=:id");$q->execute(['id'=>$retestId]);if($q->fetchColumn()!=='transfusion_reaction')throw new \DomainException('Reteste fora do contexto de reação transfusional.');$positive=(string)($_POST['result']??'')==='positive';BacteriologyService::completeRetest($retestId,(string)($_POST['result']??''),$_POST['identified_bacteria_retest']??null,$_POST['notes']??null);Auth::registerAudit($positive?'TRANSFUSION_REACTION_POSITIVE_CONFIRMED':'TRANSFUSION_REACTION_TEST_COMPLETED','bacteriology_retests',$retestId);Flash::set('success',$positive?'Positiva confirmada; Amostras Positivas está disponível.':'Reteste concluído.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::back();}
+    public static function bulk():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();try{$completed=BacteriologyService::bulkCompleteTransfusionNegatives((array)($_POST['sample_ids']??[]));Flash::set('success',count($completed).' análise(s) negativa(s) concluída(s).');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::back();}
+    public static function form():void
+    {AdminGuard::enforce('transfusion_reactions.view');$q=Database::connection()->prepare("SELECT s.*,bc.code component_code,bc.name component_name,u.name origin_name FROM samples s JOIN blood_components bc ON bc.id=s.blood_component_id LEFT JOIN units u ON u.id=s.origin_unit_id WHERE s.id=:id AND s.purpose='transfusion_reaction'");$q->execute(['id'=>(int)($_GET['id']??0)]);$sample=$q->fetch(PDO::FETCH_ASSOC);if(!$sample){http_response_code(404);echo'Amostra não encontrada.';return;}$tests=BacteriologyService::individualTestHistory((int)$sample['id'],'transfusion_reaction');Auth::registerAudit('TRANSFUSION_REACTION_FORM_PRINTED','samples',(int)$sample['id']);require dirname(__DIR__).'/Views/transfusion_reactions/form.php';}
+    public static function savePositiveSample():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();$id=(int)($_POST['positive_sample_id']??0);try{$positive=PositiveBacteriologySampleService::find($id);if(($positive['purpose']??'')!=='transfusion_reaction')throw new \DomainException('Ocorrência fora do contexto de reação transfusional.');PositiveBacteriologySampleService::save($id,$_POST,!empty($_POST['complete']));Auth::registerAudit('TRANSFUSION_REACTION_RELATED_COMPONENT_ADDED','bacteriology_positive_samples',$id);Flash::set('success',!empty($_POST['complete'])?'Ocorrência positiva concluída.':'Amostras Positivas salva para continuar depois.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}header('Location: /transfusion-reactions?open_positive='.$id);exit;}
+    public static function addRelatedComponent():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();$id=(int)($_POST['positive_sample_id']??0);try{PositiveBacteriologySampleService::addRelatedComponent($id,$_POST);Flash::set('success','Componente relacionado adicionado à investigação.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::backPositive($id);}
+    public static function updateRelatedComponent():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();$id=(int)($_POST['positive_sample_id']??0);try{$id=PositiveBacteriologySampleService::updateRelatedComponent((int)($_POST['record_id']??0),$_POST);Flash::set('success','Dados operacionais atualizados.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::backPositive($id);}
+    public static function saveRelatedTest():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();$id=(int)($_POST['positive_sample_id']??0);try{$id=PositiveBacteriologySampleService::saveRelatedTest((int)($_POST['test_id']??0),(string)($_POST['result']??''),$_POST['identified_bacteria']??null,$_POST['tested_at']??null,$_POST['notes']??null);Flash::set('success','Teste individual salvo; resultado positivo encaminhado ao reteste obrigatório.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::backPositive($id);}
+    public static function saveRelatedRetest():void
+    {AdminGuard::enforce('transfusion_reactions.edit');self::csrf();$id=(int)($_POST['positive_sample_id']??0);try{$id=PositiveBacteriologySampleService::saveRelatedRetest((int)($_POST['test_id']??0),(string)($_POST['result']??''),$_POST['identified_bacteria']??null,$_POST['tested_at']??null,$_POST['notes']??null);Flash::set('success','Reteste individual concluído.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::backPositive($id);}
+    public static function positiveSampleForm():void
+    {AdminGuard::enforce('transfusion_reactions.view');$positive=PositiveBacteriologySampleService::find((int)($_GET['id']??0));if(($positive['purpose']??'')!=='transfusion_reaction')throw new \DomainException('Ocorrência fora do contexto de reação transfusional.');$recordId=(int)($_GET['record']??0);$positive['records']=array_values(array_filter($positive['records'],static fn($r)=>(int)$r['id']===$recordId));if(!$positive['records'])throw new \DomainException('Componente relacionado não encontrado.');Auth::registerAudit('TRANSFUSION_REACTION_RELATED_FORM_PRINTED','bacteriology_positive_sample_records',$recordId);require dirname(__DIR__).'/Views/transfusion_reactions/related_component_form.php';}
+    private static function filters():array{return['patient'=>trim((string)($_GET['patient']??'')),'donation'=>trim((string)($_GET['donation']??'')),'lcqh'=>trim((string)($_GET['lcqh']??'')),'component'=>trim((string)($_GET['component']??'')),'origin'=>trim((string)($_GET['origin']??'')),'received_date'=>trim((string)($_GET['received_date']??''))];}
+    private static function csrf():void{if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada.');self::back();}}
+    private static function back():never{header('Location: /transfusion-reactions');exit;}
+    private static function backPositive(int$id):never{header('Location: /transfusion-reactions?open_positive='.$id);exit;}
+}

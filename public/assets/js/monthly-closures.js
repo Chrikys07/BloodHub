@@ -1,0 +1,2 @@
+document.addEventListener('click',function(event){const opener=event.target.closest('[data-modal]');if(opener){const modal=document.getElementById(opener.dataset.modal);if(modal)modal.showModal();return}const closer=event.target.closest('[data-close]');if(closer){closer.closest('dialog')?.close();}});
+document.querySelectorAll('.bh-modal').forEach(function(modal){modal.addEventListener('click',function(event){if(event.target===modal)modal.close();});});

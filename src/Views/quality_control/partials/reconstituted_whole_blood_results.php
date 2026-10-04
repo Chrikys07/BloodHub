@@ -1,0 +1,4 @@
+<label class="qc-readonly"><span>Preservante</span><input class="<?= empty($s['resolved_preservative_id'])?'tare-warning':'' ?>" readonly value="<?= htmlspecialchars($s['preservative_code']?:($s['preservative_name']?:'Não configurado')) ?>"></label>
+<label><span>Peso bruto (g)</span><input type="number" step="0.001" min="0.001" name="<?= $n ?>[gross_weight]" value="<?= $fmt($s['gross_weight'],3) ?>" <?= $locked?'disabled':'' ?> data-gross></label>
+<label class="qc-readonly"><span>Volume (mL)</span><input readonly value="<?= $display::formatDecimalMeasurement($s['volume_ml'],1) ?>" data-volume data-volume-raw="<?= htmlspecialchars((string)($s['volume_ml']??'')) ?>"></label>
+<label><span>Ht (%)</span><input type="number" step="0.01" name="<?= $n ?>[hematocrit]" value="<?= $fmt($s['hematocrit'],2) ?>" <?= $locked?'disabled':'' ?>></label>

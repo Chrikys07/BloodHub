@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+use BloodHub\Core\Database;
+if(PHP_SAPI!=='cli'){http_response_code(403);exit("Somente CLI.\n");}
+spl_autoload_register(static function(string $class):void{$prefix='BloodHub\\';if(!str_starts_with($class,$prefix))return;$file=dirname(__DIR__).'/src/'.str_replace('\\','/',substr($class,strlen($prefix))).'.php';if(is_file($file))require $file;});
+try{$pdo=Database::connection();echo "AMOSTRAS POR STATUS\n";foreach($pdo->query('SELECT status,COUNT(*) total FROM samples GROUP BY status ORDER BY status') as $row)printf("%-22s %d\n",$row['status'],$row['total']);echo "\nAGUARDANDO RECEBIMENTO\n";foreach($pdo->query("SELECT sample_code,sent_at FROM samples WHERE status='awaiting_receipt' ORDER BY sent_at") as $row)printf("%-30s %s\n",$row['sample_code'],$row['sent_at']??'sem data');echo "\nULTIMAS ACOES DE AUDITORIA\n";foreach($pdo->query("SELECT action,entity_id,user_id,created_at FROM audit_logs WHERE entity_type='samples' ORDER BY id DESC LIMIT 20") as $row)printf("%-20s amostra=%s usuario=%s em=%s\n",$row['action'],$row['entity_id']??'-',$row['user_id']??'-',$row['created_at']);}catch(Throwable $e){fwrite(STDERR,'Erro: '.$e->getMessage().PHP_EOL);exit(1);}

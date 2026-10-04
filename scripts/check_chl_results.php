@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+use BloodHub\Services\WashedRedCellCalculator as C;
+use BloodHub\Services\SpecificationEvaluator;
+spl_autoload_register(static function(string $class):void{$prefix='BloodHub\\';if(!str_starts_with($class,$prefix))return;$file=dirname(__DIR__).'/src/'.str_replace('\\','/',substr($class,strlen($prefix))).'.php';if(is_file($file))require $file;});
+$assert=static function(bool $ok,string $message):void{if(!$ok){fwrite(STDERR,"FALHA: {$message}\n");exit(1);}};
+$iv=C::calculateVolume(345,45,1);$fv=C::calculateVolume(295,45,1);
+$assert(abs($iv-300)<1e-12,'volume origem');$assert(abs($fv-250)<1e-12,'volume final');
+$assert(abs(C::calculateRecovery(70,$iv,65,$fv)-77.38095238095238)<1e-10,'recuperação FC0538');
+$assert(abs(C::calculateHemoglobinPerUnit(18,$fv)-45)<1e-12,'Hb/U');
+$assert(abs(C::calculateHemolysis(.2,18,65)-(.2/18*35))<1e-12,'hemólise com Ht final');
+$assert(abs(C::calculateResidualProtein(.1,.2,$fv)-.25)<1e-12,'proteína residual');
+$assert(C::calculateResidualProtein(0,.2,$fv)===null,'divisão por zero');
+$assert(C::decimal('0,1234')===.1234&&C::decimal('0.1234')===.1234,'decimais PT-BR e ponto');
+$assert(!SpecificationEvaluator::evaluateRule(['rule_type'=>'GTE','min_value'=>40,'max_value'=>null],39.99),'Hb/U abaixo de 40');
+$assert(!SpecificationEvaluator::evaluateRule(['rule_type'=>'BETWEEN','min_value'=>50,'max_value'=>75],49.99)&&!SpecificationEvaluator::evaluateRule(['rule_type'=>'BETWEEN','min_value'=>50,'max_value'=>75],75.01),'Ht final fora de 50–75');
+$assert(!SpecificationEvaluator::evaluateRule(['rule_type'=>'LT','min_value'=>null,'max_value'=>.8],.8),'hemólise igual a 0,8');
+$assert(!SpecificationEvaluator::evaluateRule(['rule_type'=>'GT','min_value'=>80,'max_value'=>null],80),'recuperação igual a 80');
+$assert(!SpecificationEvaluator::evaluateRule(['rule_type'=>'LT','min_value'=>null,'max_value'=>.5],.5),'proteína residual igual a 0,5');
+fwrite(STDOUT,"OK: fórmulas CHL do FC0538, parcial e divisão por zero conferidos.\n");

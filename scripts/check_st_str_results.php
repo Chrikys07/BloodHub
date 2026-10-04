@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fail=[];$assert=static function(bool $ok,string $message)use(&$fail):void{if(!$ok)$fail[]=$message;};
+$migration=file_get_contents($root.'/database/migrations/20260915_029_st_str_quality_results.sql');
+$view=file_get_contents($root.'/src/Views/quality_control/index.php');
+$controller=file_get_contents($root.'/src/Controllers/QualityControlController.php');
+$resultService=file_get_contents($root.'/src/Services/TestResultService.php');
+$st=file_get_contents($root.'/src/Views/quality_control/partials/whole_blood_results.php');
+$str=file_get_contents($root.'/src/Views/quality_control/partials/reconstituted_whole_blood_results.php');
+$assert(str_contains($migration,"'ST','Sangue Total',1.0560"),'Cadastro seguro de ST ausente.');
+$assert(str_contains($migration,"'STR','Sangue Total Reconstituído',1.0560"),'Cadastro seguro de STR ausente.');
+$assert(str_contains($migration,"density IS NULL"),'Migration pode sobrescrever densidade administrativa.');
+$assert(str_contains($migration,"'BETWEEN',405,495")&&str_contains($migration,"'GTE',45")&&str_contains($migration,"'LT',0.8"),'Especificacoes iniciais de ST ausentes.');
+$assert(str_contains($view,"\$componentCode==='ST'")&&str_contains($view,"\$componentCode==='STR'"),'Selecao por codigo estavel ausente.');
+$assert(str_contains($controller,"self::persistSample(\$sample,\$_POST['samples'][\$id])"),'Conclusao individual nao persiste os valores atuais de ST/STR.');
+$assert(preg_match("/\['ST','STR'(?:,'CRIO')?\]/",$resultService)===1&&str_contains($resultService,"'LCQH_CODE'"),'Conclusao nao exige codigo LCQH para ST/STR.');
+$assert(str_contains($st,'whole_blood')===false&&str_contains($st,'data-hb-unit')&&str_contains($st,'hematocrit'),'Renderer ST incompleto.');
+$assert(!str_contains($str,'data-hb-unit')&&str_contains($str,'hematocrit'),'Renderer STR deve conter apenas Ht e volume.');
+$assert(!preg_match('/\/\s*1\.056/', $view.$controller.$st.$str),'Densidade hardcoded no calculo.');
+if($fail){foreach($fail as $message)fwrite(STDERR,"FALHA: {$message}\n");exit(1);}fwrite(STDOUT,"OK: ST/STR renderers, configuracao e persistencia conferidos.\n");

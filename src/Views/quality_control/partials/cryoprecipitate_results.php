@@ -1,0 +1,5 @@
+<label><span>Peso bruto (g)</span><input inputmode="decimal" name="<?= $n ?>[gross_weight]" value="<?= $fmt($s['crio_gross_weight']??$s['gross_weight'],3) ?>" <?= $locked?'disabled':'' ?> data-gross></label>
+<label class="qc-readonly"><span>Volume (mL)</span><input readonly value="<?= $display::formatDecimalMeasurement($s['volume_ml'],1) ?>" data-volume data-volume-raw="<?= htmlspecialchars((string)($s['volume_ml']??'')) ?>"></label>
+<label><span>Diluição</span><input inputmode="decimal" name="<?= $n ?>[dilution]" value="<?= $fmt($s['crio_dilution'],4) ?>" <?= $locked?'disabled':'' ?> data-crio-dilution></label>
+<label><span>Fibrinogênio (mg/dL)</span><input inputmode="decimal" name="<?= $n ?>[fibrinogen_mg_dl]" value="<?= $fmt($s['crio_fibrinogen_mg_dl'],4) ?>" <?= $locked?'disabled':'' ?> data-crio-fibrinogen-mg-dl></label>
+<label class="qc-readonly"><span>Fibrinogênio (mg/U)</span><input readonly value="<?= htmlspecialchars($display::formatTestValue('FIBRINOGEN',$s['crio_fibrinogen_mg_u']??$s['fibrinogen'])) ?>" data-crio-fibrinogen-mg-u></label>

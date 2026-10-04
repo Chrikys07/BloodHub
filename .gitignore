@@ -1,18 +1,55 @@
-# Dependências
+# Environment and local credentials
+.env
+.env.*
+!.env.example
+config/database.php
+config/mail.php
+config/*.local.php
+config/*secret*.php
+config/*credentials*.php
+
+# Database dumps and backups (migrations/schema remain versionable)
+database/backups/
+database/**/*.sql.gz
+database/**/*.sql.zip
+**/*backup*.sql
+**/*dump*.sql
+*.dump
+*.bak
+
+# Runtime data, logs, caches and temporary files
+storage/*
+!storage/.gitkeep
+!storage/reports/
+storage/reports/*
+!storage/reports/.gitkeep
+!storage/sessions/
+storage/sessions/*
+!storage/sessions/.gitkeep
+tmp/
+logs/
+*.log
+*.cache
+*.tmp
+sess_*
+
+# Generated reports and documents
+*.pdf
+public/reports/
+
+# Sensitive/user-generated public uploads
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/avatars/
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
+
+vendor/
 node_modules/
-
-# Builds
-dist/
-build/
-
-# VS Code / sistema
+.idea/
 .vscode/
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
-# Variáveis/segredos
-.env
-.env.*
+# Local Codex working prompts (all names/extensions beginning with this prefix)
+codex_prompt*

@@ -1,0 +1,6 @@
+<?php require dirname(__DIR__,2).'/layouts/admin_start.php'; ?>
+<section class="content-card"><div class="section-heading"><div><h2>Clientes cadastrados</h2><p>Gerencie organizações internas e externas do BloodHub.</p></div><a class="button" href="/admin/clients/create">Novo Cliente</a></div>
+<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>E-mail</th><th>Telefone</th><th>Status</th><th>Criado em</th><th></th></tr></thead><tbody>
+<?php if(!$clients): ?><tr><td colspan="7" class="empty">Nenhum cliente cadastrado.</td></tr><?php endif; ?>
+<?php foreach($clients as $item): ?><tr><td><strong><?= htmlspecialchars($item['name'],ENT_QUOTES,'UTF-8') ?></strong></td><td><span class="client-type client-type-<?= $item['client_type'] ?>"><?= $item['client_type']==='internal'?'Interno':'Externo' ?></span></td><td><?= htmlspecialchars($item['email']??'—',ENT_QUOTES,'UTF-8') ?></td><td><?= htmlspecialchars($item['phone']??'—',ENT_QUOTES,'UTF-8') ?></td><td><span class="status status-<?= $item['status'] ?>"><?= $item['status']==='active'?'Ativo':'Inativo' ?></span></td><td><?= date('d/m/Y',strtotime($item['created_at'])) ?></td><td><a class="table-action" href="/admin/clients/edit?id=<?= (int)$item['id'] ?>">Editar</a></td></tr><?php endforeach; ?>
+</tbody></table></div></section><?php require dirname(__DIR__,2).'/layouts/admin_end.php'; ?>

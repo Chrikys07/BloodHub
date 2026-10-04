@@ -1,0 +1,47 @@
+-- Ocorrencias confirmadas apos reteste bacteriologico e seus hemocomponentes relacionados.
+CREATE TABLE IF NOT EXISTS bacteriology_positive_samples (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ bacteriology_result_id BIGINT UNSIGNED NOT NULL,
+ sample_id BIGINT UNSIGNED NOT NULL,
+ donation_number VARCHAR(120) NOT NULL,
+ send_date DATE NULL,
+ collection_date DATE NULL,
+ origin VARCHAR(180) NULL,
+ client VARCHAR(180) NULL,
+ status ENUM('pending','in_progress','completed') NOT NULL DEFAULT 'pending',
+ conclusion TEXT NULL,
+ created_by BIGINT UNSIGNED NULL,
+ completed_by BIGINT UNSIGNED NULL,
+ completed_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ CONSTRAINT fk_bact_positive_result FOREIGN KEY(bacteriology_result_id) REFERENCES bacteriology_results(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_bact_positive_sample FOREIGN KEY(sample_id) REFERENCES samples(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_bact_positive_creator FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
+ CONSTRAINT fk_bact_positive_completer FOREIGN KEY(completed_by) REFERENCES users(id) ON DELETE SET NULL,
+ UNIQUE KEY uk_bact_positive_result(bacteriology_result_id),
+ KEY idx_bact_positive_filters(donation_number,status,send_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS bacteriology_positive_sample_records (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ positive_sample_id BIGINT UNSIGNED NOT NULL,
+ position SMALLINT UNSIGNED NOT NULL,
+ include_in_form TINYINT(1) NOT NULL DEFAULT 1,
+ send_date DATE NULL,
+ donation_number VARCHAR(120) NOT NULL,
+ hemocomponent VARCHAR(180) NULL,
+ collection_date DATE NULL,
+ origin VARCHAR(180) NULL,
+ situation VARCHAR(180) NULL,
+ storage_location VARCHAR(180) NULL,
+ reaction VARCHAR(180) NULL,
+ test_name VARCHAR(180) NULL,
+ bacteriology_date DATE NULL,
+ bacteriology_result VARCHAR(120) NULL,
+ identified_bacteria VARCHAR(255) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ CONSTRAINT fk_bact_positive_record_parent FOREIGN KEY(positive_sample_id) REFERENCES bacteriology_positive_samples(id) ON DELETE CASCADE,
+ UNIQUE KEY uk_bact_positive_position(positive_sample_id,position)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
