@@ -2582,7 +2582,7 @@ ALTER TABLE `cpaf_yield_classification_rules`
   ADD CONSTRAINT `fk_cpaf_yield_component`
   FOREIGN KEY (`blood_component_id`)
   REFERENCES `blood_components` (`id`)
-  ON DELETE CASCADE;
+  ON DELETE RESTRICT;
 
 SET FOREIGN_KEY_CHECKS = @OLD_FOREIGN_KEY_CHECKS;
 

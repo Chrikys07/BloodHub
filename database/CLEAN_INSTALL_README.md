@@ -97,6 +97,7 @@ O script mantém `FOREIGN_KEY_CHECKS=1`, cria os pais antes dos filhos e insere 
 - valores de `AUTO_INCREMENT` do desenvolvimento foram removidos das definições; IDs mestres explícitos continuam preservados e o próximo valor é calculado pelo MySQL;
 - não foram levados cabeçalhos, locks, comandos de seleção de banco ou desativação de foreign keys do dump MariaDB;
 - colunas geradas, constraints `CHECK`, `DATETIME(6)` e validações `json_valid` existentes foram mantidas em sintaxe aceita pelo MySQL 8.0.46;
+- a FK `fk_cpaf_yield_component` usa `ON DELETE RESTRICT`: no MySQL 8, uma foreign key sobre `blood_component_id`, coluna-base da coluna gerada `STORED` `active_component_guard`, não pode usar `CASCADE`, `SET NULL` ou `SET DEFAULT` como ação referencial. A restrição preserva a FK, impede a exclusão de hemocomponentes com regras CPAF e mantém o histórico e a unicidade da única classificação ativa por hemocomponente;
 - os tipos com largura de exibição, como `BIGINT(20)` e `TINYINT(1)`, foram mantidos por compatibilidade estrutural; no MySQL 8 a largura é apenas legada e não altera o armazenamento;
 - não há views, triggers, procedures, functions ou events no catálogo atual.
 

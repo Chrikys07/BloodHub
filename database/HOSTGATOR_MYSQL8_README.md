@@ -2,7 +2,7 @@
 
 ## Arquivo de instalação
 
-Use `database/bloodhub_hostgator_mysql8.sql` somente em um banco vazio na HostGator. O arquivo original `database/bloodhub_clean_install.sql` permanece inalterado.
+Este arquivo registra o workaround histórico usado na investigação. Para instalações oficiais novas, use `database/bloodhub_clean_install.sql`, agora nativamente compatível com MySQL 8. O arquivo `database/bloodhub_hostgator_mysql8.sql` também foi alinhado para não manter uma ação referencial incompatível.
 
 O instalador não contém `CREATE DATABASE`, `USE`, `DROP`, `DELETE` ou `TRUNCATE`. Selecione previamente, no phpMyAdmin, o banco vazio de destino e importe o arquivo em UTF-8.
 
@@ -17,7 +17,7 @@ A auditoria das definições não encontrou incompatibilidade lógica ou de tipo
 - o registro mestre preservado da regra usa `blood_component_id = 14`, e o hemocomponente `blood_components.id = 14` existe;
 - as FKs de autoria, atualização, autorreferência e a FK de `cpaf_yield_classifications.rule_id` continuam estruturalmente válidas.
 
-Portanto, não há uma causa estrutural reproduzível no DDL fornecido que justifique isoladamente o erro `#1215`. Com as verificações já realizadas no servidor, o sintoma é compatível com uma particularidade do processamento de DDL/metadados do ambiente gerenciado ao criar essa constraint inline. A causa interna exata só pode ser confirmada no servidor imediatamente após a falha com `SHOW WARNINGS` e `SHOW ENGINE INNODB STATUS`.
+O erro `#1215` tem causa estrutural: no MySQL 8, uma foreign key sobre uma coluna-base de uma coluna gerada `STORED` não pode usar `CASCADE`, `SET NULL` ou `SET DEFAULT` como ação referencial. Neste caso, `blood_component_id` é usado por `active_component_guard`, portanto `fk_cpaf_yield_component` deve usar `ON DELETE RESTRICT`.
 
 ## Tratamento aplicado
 
@@ -26,7 +26,7 @@ A integridade física foi preservada. A FK não foi removida:
 1. `fk_cpaf_yield_component` foi retirada apenas do `CREATE TABLE` de `cpaf_yield_classification_rules`;
 2. foi criado o índice simples e explícito `idx_cpaf_yield_blood_component_id (blood_component_id)`;
 3. todas as tabelas, PKs, demais índices, demais FKs e dados configuracionais são criados/carregados primeiro;
-4. depois do `COMMIT`, ainda com `FOREIGN_KEY_CHECKS = 1`, a FK é criada por `ALTER TABLE`, no fim do script, com `ON DELETE CASCADE`;
+4. depois do `COMMIT`, ainda com `FOREIGN_KEY_CHECKS = 1`, a FK é criada por `ALTER TABLE`, no fim do script, com `ON DELETE RESTRICT`;
 5. somente após o `ALTER TABLE` a configuração anterior de `FOREIGN_KEY_CHECKS` é restaurada.
 
 O índice simples é intencional, mesmo existindo outros índices compostos iniciados pela mesma coluna: ele elimina qualquer dependência da escolha automática de índice pelo InnoDB durante o `ALTER TABLE`.
@@ -86,7 +86,7 @@ WHERE CONSTRAINT_SCHEMA = DATABASE()
   AND CONSTRAINT_NAME = 'fk_cpaf_yield_component';
 ```
 
-Deve existir uma linha para o índice e uma para a FK, com tabela referenciada `blood_components` e `DELETE_RULE = CASCADE`.
+Deve existir uma linha para o índice e uma para a FK, com tabela referenciada `blood_components` e `DELETE_RULE = RESTRICT`.
 
 ### Ausência de órfãos
 

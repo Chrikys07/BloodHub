@@ -556,7 +556,7 @@ CREATE TABLE `cpaf_yield_classification_rules` (
   KEY `fk_cpaf_yield_created_by` (`created_by`),
   KEY `fk_cpaf_yield_updated_by` (`updated_by`),
   KEY `idx_cpaf_yield_active` (`blood_component_id`,`active`,`effective_from`,`effective_to`),
-  CONSTRAINT `fk_cpaf_yield_component` FOREIGN KEY (`blood_component_id`) REFERENCES `blood_components` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cpaf_yield_component` FOREIGN KEY (`blood_component_id`) REFERENCES `blood_components` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_cpaf_yield_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_cpaf_yield_supersedes` FOREIGN KEY (`supersedes_id`) REFERENCES `cpaf_yield_classification_rules` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_cpaf_yield_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS cpaf_yield_classification_rules (
  updated_by BIGINT UNSIGNED NULL,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
- CONSTRAINT fk_cpaf_yield_component FOREIGN KEY (blood_component_id) REFERENCES blood_components(id) ON DELETE CASCADE,
+ CONSTRAINT fk_cpaf_yield_component FOREIGN KEY (blood_component_id) REFERENCES blood_components(id) ON DELETE RESTRICT,
  CONSTRAINT fk_cpaf_yield_supersedes FOREIGN KEY (supersedes_id) REFERENCES cpaf_yield_classification_rules(id) ON DELETE SET NULL,
  CONSTRAINT fk_cpaf_yield_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
  CONSTRAINT fk_cpaf_yield_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
