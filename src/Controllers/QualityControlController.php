@@ -21,13 +21,20 @@ final class QualityControlController
         if($filters['received_date']!==''){$where[]='DATE(s.received_at)=:received_date';$params['received_date']=$filters['received_date'];}
         foreach([['donation','s.donation_number'],['lcqh','s.lcqh_code']] as [$key,$column])if($filters[$key]!==''){$where[]="$column LIKE :$key";$params[$key]='%'.$filters[$key].'%';}
         $sql="SELECT s.*,u.name origin_name,bc.code component_code,bc.name component_name,bc.density,b.name bag_brand_name,b.reference_number,CASE WHEN s.status='completed' THEN s.preservative_id ELSE b.preservative_id END resolved_preservative_id,p.code preservative_code,p.name preservative_name,wr.gross_weight,wr.tare_weight_used,wr.net_weight,wr.density_used,wr.volume_ml,wr.bag_brand_tare_id,
-            MAX(CASE WHEN t.code='HEMATOCRIT' THEN tr.result_value_numeric END) hematocrit,
-            MAX(CASE WHEN t.code='HEMOGLOBIN' THEN tr.result_value_numeric END) hemoglobin,
-            MAX(CASE WHEN t.code='HEMOGLOBIN_PER_UNIT' THEN tr.result_value_numeric END) hemoglobin_per_unit,
-            MAX(CASE WHEN t.code='VOLUME' THEN tr.result_value_numeric END) manual_volume,
-            MAX(CASE WHEN t.code='FIBRINOGEN' THEN tr.result_value_numeric END) fibrinogen,
+            results.hematocrit,results.hemoglobin,results.hemoglobin_per_unit,results.manual_volume,results.fibrinogen,
             cr.dilution crio_dilution,cr.fibrinogen_mg_dl crio_fibrinogen_mg_dl,cr.fibrinogen_mg_u crio_fibrinogen_mg_u,cr.gross_weight crio_gross_weight
-            FROM samples s LEFT JOIN units u ON u.id=s.origin_unit_id LEFT JOIN blood_components bc ON bc.id=s.blood_component_id LEFT JOIN bag_brands b ON b.id=s.bag_brand_id LEFT JOIN preservatives p ON p.id=CASE WHEN s.status='completed' THEN s.preservative_id ELSE b.preservative_id END LEFT JOIN sample_weight_results wr ON wr.sample_id=s.id LEFT JOIN cryoprecipitate_results cr ON cr.sample_id=s.id LEFT JOIN sample_tests st ON st.sample_id=s.id LEFT JOIN tests t ON t.id=st.test_id LEFT JOIN test_results tr ON tr.sample_test_id=st.id WHERE ".implode(' AND ',$where).' GROUP BY s.id ORDER BY s.received_at DESC,s.id DESC';
+            FROM samples s LEFT JOIN units u ON u.id=s.origin_unit_id LEFT JOIN blood_components bc ON bc.id=s.blood_component_id LEFT JOIN bag_brands b ON b.id=s.bag_brand_id LEFT JOIN preservatives p ON p.id=CASE WHEN s.status='completed' THEN s.preservative_id ELSE b.preservative_id END LEFT JOIN sample_weight_results wr ON wr.sample_id=s.id LEFT JOIN cryoprecipitate_results cr ON cr.sample_id=s.id LEFT JOIN (
+                SELECT st.sample_id,
+                    MAX(CASE WHEN t.code='HEMATOCRIT' THEN tr.result_value_numeric END) hematocrit,
+                    MAX(CASE WHEN t.code='HEMOGLOBIN' THEN tr.result_value_numeric END) hemoglobin,
+                    MAX(CASE WHEN t.code='HEMOGLOBIN_PER_UNIT' THEN tr.result_value_numeric END) hemoglobin_per_unit,
+                    MAX(CASE WHEN t.code='VOLUME' THEN tr.result_value_numeric END) manual_volume,
+                    MAX(CASE WHEN t.code='FIBRINOGEN' THEN tr.result_value_numeric END) fibrinogen
+                FROM sample_tests st
+                LEFT JOIN tests t ON t.id=st.test_id
+                LEFT JOIN test_results tr ON tr.sample_test_id=st.id
+                GROUP BY st.sample_id
+            ) results ON results.sample_id=s.id WHERE ".implode(' AND ',$where).' ORDER BY s.received_at DESC,s.id DESC';
         $q=$pdo->prepare($sql);$q->execute($params);$samples=$q->fetchAll(PDO::FETCH_ASSOC);
         foreach($samples as &$sample){$sample['hemolysis']=CalculatedTestService::hemolysisState((int)$sample['id']);$sample['washed_red_cell']=WashedRedCellResultService::state((int)$sample['id']);$sample['platelet']=PlateletResultService::state((int)$sample['id']);$sample['residual_leukocytes']=RedCellResidualLeukocyteService::state((int)$sample['id']);$sample['fresh_plasma']=FreshPlasmaResultService::state((int)$sample['id']);$sample['factor_viii']=FactorViiiPoolService::state((int)$sample['id']);$sample['nonconforming']=SpecificationEvaluator::nonconforming((int)$sample['id']);$sample['missing_requirements']=TestResultService::missingRequired((int)$sample['id']);try{$sample['resolved_tare']=($sample['bag_brand_id']&&$sample['blood_component_id'])?BagTareResolver::resolve((int)$sample['bag_brand_id'],(int)$sample['blood_component_id']):null;$sample['tare_error']=null;}catch(DomainException $e){$sample['resolved_tare']=null;$sample['tare_error']=$e->getMessage();}}unset($sample);
         self::view('index',['samples'=>$samples,'components'=>$components,'origins'=>$pdo->query("SELECT DISTINCT u.id,u.name FROM units u JOIN samples s ON s.origin_unit_id=u.id WHERE s.purpose='quality_control' ORDER BY u.name")->fetchAll(PDO::FETCH_ASSOC),'filters'=>$filters,'canEdit'=>Permission::can('quality_results.edit'),'canComplete'=>Permission::can('quality_results.complete'),'queueCounts'=>self::queueCounts(),'pageTitle'=>'Controle de Qualidade','pageSubtitle'=>'Registre, acompanhe e conclua os resultados das amostras recebidas pelo LCQH.']);

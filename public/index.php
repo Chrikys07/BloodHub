@@ -44,6 +44,24 @@ use BloodHub\Core\Router;
 
 header('Content-Type: text/html; charset=UTF-8');
 
+$appConfig = require dirname(__DIR__) . '/config/app.php';
+$debug = (bool) ($appConfig['debug'] ?? false);
+error_reporting(E_ALL);
+ini_set('display_errors', $debug ? '1' : '0');
+ini_set('display_startup_errors', $debug ? '1' : '0');
+ini_set('log_errors', '1');
+
+set_exception_handler(static function (\Throwable $exception) use ($debug): void {
+    error_log((string) $exception);
+    http_response_code(500);
+    if (!headers_sent()) header('Content-Type: text/html; charset=UTF-8');
+    if ($debug) {
+        echo '<pre>' . htmlspecialchars((string) $exception, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</pre>';
+        return;
+    }
+    echo 'Ocorreu um erro inesperado. Tente novamente mais tarde.';
+});
+
 $sessionPath = getenv('SESSION_SAVE_PATH') ?: dirname(__DIR__) . '/storage/sessions';
 if (!is_dir($sessionPath)) mkdir($sessionPath, 0770, true);
 if (is_dir($sessionPath) && is_writable($sessionPath)) session_save_path($sessionPath);
