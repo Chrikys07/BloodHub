@@ -3,7 +3,6 @@
     <div class="sidebar-brand"><img class="sidebar-logo" src="/assets/images/bloodhub-logo-horizontal.png" alt="BloodHub — Controle de Qualidade"></div>
     <nav class="sidebar-nav" aria-label="Navegação principal">
         <?php if (\BloodHub\Core\Permission::can('dashboard.global.view')): ?><a class="nav-item <?= $path === '/' ? 'active' : '' ?>" href="/">Dashboard Global</a><?php endif; ?>
-        <a class="nav-item" href="#">Dashboard Operacional</a>
         <?php if (\BloodHub\Core\Permission::can('reception.view')): ?><a class="nav-item <?= str_starts_with($path, '/reception') ? 'active' : '' ?>" href="/reception">Recebimento</a><?php endif; ?>
         <?php if (\BloodHub\Core\Permission::can('samples.view') || \BloodHub\Core\Permission::can('shipments.view')): ?><a class="nav-item <?= str_starts_with($path, '/samples') ? 'active' : '' ?>" href="/samples">Amostras</a><?php endif; ?>
         <?php if (\BloodHub\Core\Permission::can('production.view')): ?><a class="nav-item <?= str_starts_with($path, '/production') ? 'active' : '' ?>" href="/production">Produção</a><?php endif; ?>
