@@ -25,6 +25,9 @@ final class ProfileController
         }
         $current = self::currentUser();
         if (!$current) { Auth::logout(); header('Location: /login'); exit; }
+        if (($_POST['action'] ?? '') === 'change_password') {
+            self::changePassword($current);
+        }
         $remove = ($_POST['remove_photo'] ?? '') === '1';
         $upload = $_FILES['photo'] ?? null;
         $hasUpload = is_array($upload) && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
@@ -76,9 +79,59 @@ final class ProfileController
 
     private static function currentUser(): ?array
     {
-        $stmt=Database::connection()->prepare('SELECT id,name,email,photo_path,status FROM users WHERE id=:id LIMIT 1');
+        $stmt=Database::connection()->prepare('SELECT id,name,email,photo_path,status,password_hash FROM users WHERE id=:id LIMIT 1');
         $stmt->execute(['id'=>(int)(Auth::user()['id'] ?? 0)]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    private static function changePassword(array $current): never
+    {
+        $currentPassword = (string)($_POST['current_password'] ?? '');
+        $newPassword = (string)($_POST['new_password'] ?? '');
+        $confirmation = (string)($_POST['new_password_confirmation'] ?? '');
+
+        $validationError = self::passwordChangeError(
+            (string)$current['password_hash'],
+            $currentPassword,
+            $newPassword,
+            $confirmation
+        );
+        if ($validationError !== null) {
+            Flash::set('error', $validationError);
+            self::redirect();
+        }
+
+        $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        if ($passwordHash === false) {
+            Flash::set('error', 'Não foi possível proteger a nova senha. Tente novamente.');
+            self::redirect();
+        }
+
+        try {
+            Database::connection()->prepare('UPDATE users SET password_hash=:password_hash WHERE id=:id')
+                ->execute(['password_hash'=>$passwordHash, 'id'=>(int)$current['id']]);
+        } catch (\Throwable $e) {
+            Flash::set('error', 'Não foi possível alterar a senha. Tente novamente.');
+            self::redirect();
+        }
+
+        Auth::registerAudit('profile.password.update', 'users', (int)$current['id']);
+        Flash::set('success', 'Senha alterada com sucesso. Use a nova senha no próximo login.');
+        self::redirect();
+    }
+
+    private static function passwordChangeError(string $currentHash, string $currentPassword, string $newPassword, string $confirmation): ?string
+    {
+        if ($currentPassword === '' || !password_verify($currentPassword, $currentHash)) {
+            return 'A senha atual está incorreta.';
+        }
+        if (strlen($newPassword) < 8) {
+            return 'A nova senha deve ter no mínimo 8 caracteres.';
+        }
+        if ($newPassword !== $confirmation) {
+            return 'A nova senha e a confirmação não coincidem.';
+        }
+        return null;
     }
 
     private static function deleteManagedPhoto(string $path): void

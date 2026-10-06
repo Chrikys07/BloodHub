@@ -15,7 +15,12 @@ final class PermissionController
         $roles=$pdo->query('SELECT id,name FROM roles ORDER BY name')->fetchAll();
         $roleId=filter_input(INPUT_GET,'role_id',FILTER_VALIDATE_INT) ?: (int)($roles[0]['id']??0);
         $permissions=$pdo->query("SELECT id,module,name,permission_key FROM permissions WHERE status='active' ORDER BY module,name")->fetchAll();
-        $grouped=[];foreach($permissions as $permission)$grouped[$permission['module']][]=$permission;
+        $grouped=[];foreach($permissions as $permission){
+            $module=trim((string)$permission['module']);
+            if($module==='' && str_starts_with((string)$permission['permission_key'],'reports.'))$module='reports';
+            if($module==='')$module='general';
+            $grouped[$module][]=$permission;
+        }
         $s=$pdo->prepare('SELECT permission_id FROM role_permissions WHERE role_id=:id');$s->execute(['id'=>$roleId]);$selected=array_map('intval',$s->fetchAll(\PDO::FETCH_COLUMN));
         $pageTitle='Permissões';$flash=Flash::pull();$csrf=Csrf::token();$userAuth=Auth::user();require dirname(__DIR__,2).'/Views/admin/permissions/index.php';
     }

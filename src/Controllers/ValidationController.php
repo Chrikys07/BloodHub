@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace BloodHub\Controllers;
 
 use BloodHub\Core\{AdminGuard,Auth,Csrf,Database,Flash,Permission,ValidationAccess};
-use BloodHub\Services\{BagTareResolver,LaboratoryDependencyResolver,SpecificationEvaluator,ValidationPhaseService,ValidationResultService};
+use BloodHub\Services\{BagTareResolver,InternalNotificationService,LaboratoryDependencyResolver,SpecificationEvaluator,ValidationDashboardService,ValidationPhaseService,ValidationResultService};
 use PDO;
 
 final class ValidationController
@@ -29,6 +29,26 @@ final class ValidationController
     {
         AdminGuard::enforce('validations.view');$v=self::find();if(!$v){self::notFound();return;}$pdo=Database::connection();$id=(int)$v['id'];$phases=ValidationPhaseService::phasesWithStats($id);$components=$pdo->prepare("SELECT bc.*,vbc.phase_id FROM validation_blood_components vbc JOIN blood_components bc ON bc.id=vbc.blood_component_id WHERE vbc.validation_id=:id AND vbc.status='active' ORDER BY bc.code");$components->execute(['id'=>$id]);$stats=$pdo->prepare("SELECT COUNT(*) samples,COALESCE(SUM(status='completed'),0) completed,COALESCE(SUM(status<>'completed'),0) pending FROM samples WHERE validation_id=:id");$stats->execute(['id'=>$id]);$res=$pdo->prepare("SELECT COUNT(*) filled,(SELECT COUNT(*) FROM samples s JOIN validation_tests vt ON vt.validation_id=s.validation_id AND vt.blood_component_id=s.blood_component_id AND vt.status='active' AND vt.phase_id=s.validation_phase_id WHERE s.validation_id=:id2) expected FROM test_results tr JOIN sample_tests st ON st.id=tr.sample_test_id JOIN samples s ON s.id=st.sample_id WHERE s.validation_id=:id");$res->execute(['id'=>$id,'id2'=>$id]);$plan=$pdo->prepare("SELECT COUNT(*) FROM validation_tests WHERE validation_id=:id AND status='active'");$plan->execute(['id'=>$id]);self::view('show',['validation'=>$v,'phases'=>$phases,'components'=>$components->fetchAll(),'stats'=>$stats->fetch(),'resultStats'=>$res->fetch(),'planConfigured'=>(int)$plan->fetchColumn()>0,'completionBlocker'=>ValidationPhaseService::completionBlocker($id),'pageTitle'=>$v['pv_number']]);
     }
+    public static function dashboard():void
+    {AdminGuard::enforce('validations.view');$v=self::find();if(!$v){self::notFound();return;}$data=ValidationDashboardService::build((int)$v['id'],(int)($_GET['phase']??0),(int)($_GET['test']??0));self::view('dashboard',$data+['validation'=>$v,'pageTitle'=>'Dashboard '.$v['pv_number'],'pageSubtitle'=>$v['name'].' — '.($v['unit_name']??'')]);}
+    public static function dashboardSelection():void
+    {
+        AdminGuard::enforce('validations.view');
+        [$scope,$params]=ValidationAccess::scopeSql('v');
+        $sql="SELECT v.id,v.pv_number,v.name,v.start_date,v.expected_end_date,v.actual_end_date,v.status,
+                    u.name unit_name,creator.name responsible_name,
+                    GROUP_CONCAT(DISTINCT CONCAT(bc.code,' — ',bc.name) ORDER BY bc.code SEPARATOR '||') component_names
+              FROM validations v
+              LEFT JOIN units u ON u.id=v.unit_id
+              LEFT JOIN users creator ON creator.id=v.created_by
+              LEFT JOIN validation_blood_components vbc ON vbc.validation_id=v.id AND vbc.status='active'
+              LEFT JOIN blood_components bc ON bc.id=vbc.blood_component_id
+             WHERE {$scope}
+             GROUP BY v.id,v.pv_number,v.name,v.start_date,v.expected_end_date,v.actual_end_date,v.status,u.name,creator.name
+             ORDER BY FIELD(v.status,'in_progress','planned','completed','cancelled'),v.start_date DESC,v.id DESC";
+        $query=Database::connection()->prepare($sql);$query->execute($params);
+        self::view('dashboard_selection',['validations'=>$query->fetchAll(PDO::FETCH_ASSOC),'pageTitle'=>'Dashboard de Validações','pageSubtitle'=>'Selecione uma validação para abrir o dashboard.']);
+    }
     public static function plan():void
     {
         AdminGuard::enforce('validations.view');$v=self::find();if(!$v){self::notFound();return;}$pdo=Database::connection();$ph=$pdo->prepare("SELECT * FROM validation_phases WHERE validation_id=:id AND status<>'inactive' ORDER BY sequence_order");$ph->execute(['id'=>$v['id']]);$phases=$ph->fetchAll();$last=$phases?end($phases):null;$phase=(int)($_GET['phase_id']??($last['id']??0));if(!in_array($phase,array_map('intval',array_column($phases,'id')),true))$phase=(int)($last['id']??0);$selectedPhase=current(array_filter($phases,static fn($p)=>(int)$p['id']===$phase))?:null;$tests=$pdo->prepare("SELECT bc.id component_id,bc.code component_code,bc.name component_name,t.id test_id,t.name test_name,t.result_type,t.unit,tbc.is_required default_required,vt.id selected,vt.is_required FROM blood_components bc JOIN test_blood_components tbc ON tbc.blood_component_id=bc.id JOIN tests t ON t.id=tbc.test_id AND t.status='active' LEFT JOIN validation_tests vt ON vt.validation_id=:id AND vt.phase_id=:phase AND vt.blood_component_id=bc.id AND vt.test_id=t.id AND vt.status='active' WHERE bc.status='active' ORDER BY bc.code,t.name");$tests->execute(['id'=>$v['id'],'phase'=>$phase]);self::view('plan',['validation'=>$v,'phases'=>$phases,'phase'=>$phase,'selectedPhase'=>$selectedPhase,'tests'=>$tests->fetchAll(),'pageTitle'=>'Plano de testes']);
@@ -52,7 +72,7 @@ final class ValidationController
             $user=(int)Auth::user()['id'];$pdo->prepare('INSERT INTO validations(pv_number,name,description,unit_id,start_date,expected_end_date,status,created_by,updated_by) VALUES(:pv_number,:name,:description,:unit_id,:start_date,:expected_end_date,:status,:user,:user2)')->execute($d+['user'=>$user,'user2'=>$user]);$id=(int)$pdo->lastInsertId();
             $pdo->prepare("INSERT INTO validation_phases(validation_id,name,sequence_order,status,started_at,created_by) VALUES(:validation,'Etapa 1',1,'active',:started,:user)")->execute(['validation'=>$id,'started'=>$d['start_date'].' 00:00:00','user'=>$user]);$phase=(int)$pdo->lastInsertId();
             Auth::registerAudit('VALIDATION_CREATED','validations',$id,null,$d);Auth::registerAudit('VALIDATION_PHASE_CREATED','validation_phases',$phase,null,['validation_id'=>$id,'name'=>'Etapa 1','sequence_order'=>1]);Auth::registerAudit('VALIDATION_PHASE_STARTED','validation_phases',$phase,null,['validation_id'=>$id,'started_at'=>$d['start_date']]);
-            $pdo->commit();Flash::set('success','Validação criada com Etapa 1.');self::redirect('/validations/view?id='.$id);
+            $pdo->commit();InternalNotificationService::notifyUnit((int)$d['unit_id'],'validations.view','validation.created','Validação criada',$d['pv_number'].' — '.$d['name'],'/validations/view?id='.$id,'validations',$id,$user);Flash::set('success','Validação criada com Etapa 1.');self::redirect('/validations/view?id='.$id);
         }catch(\Throwable $e){if($pdo->inTransaction())$pdo->rollBack();self::view('form',['validation'=>$d,'errors'=>[$e instanceof \PDOException?'Não foi possível salvar. Verifique o número PV e a unidade.':$e->getMessage()],'units'=>ValidationAccess::units(),'pageTitle'=>'Nova validação']);}
     }
 

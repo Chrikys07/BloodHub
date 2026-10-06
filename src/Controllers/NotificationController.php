@@ -2,12 +2,16 @@
 declare(strict_types=1);
 namespace BloodHub\Controllers;
 
-use BloodHub\Core\{AdminGuard,Csrf,Database,Flash,Permission};
-use BloodHub\Services\{MeasurementFormatter,NotificationActionService,NotificationAnalysisService,NotificationWorkflowService,QcNotificationService};
+use BloodHub\Core\{AdminGuard,Auth,Csrf,Database,Flash,Permission};
+use BloodHub\Services\{InternalNotificationService,MeasurementFormatter,NotificationActionService,NotificationAnalysisService,NotificationWorkflowService,QcNotificationService};
 use PDO;
 
 final class NotificationController
 {
+ public static function internalRecent():void
+ {self::internalGuard();self::json(['ok'=>true,'unread_count'=>InternalNotificationService::unreadCount((int)Auth::user()['id']),'notifications'=>InternalNotificationService::recent((int)Auth::user()['id'])]);}
+ public static function internalRead():void
+ {self::internalGuard();if(!Csrf::validate($_POST['_csrf']??null))self::json(['ok'=>false,'message'=>'Sessão expirada.'],419);$count=InternalNotificationService::markRead((int)Auth::user()['id'],(array)($_POST['ids']??[]));self::json(['ok'=>true,'updated'=>$count,'unread_count'=>InternalNotificationService::unreadCount((int)Auth::user()['id'])]);}
  public static function index():void
  {
   AdminGuard::enforce('notifications.view');$pdo=Database::connection();[$scope,$params]=QcNotificationService::scopeSql('n');$where=[$scope];$f=$_GET;
@@ -39,5 +43,7 @@ final class NotificationController
  public static function addItems():void{self::postGuard('notifications.analyze');$analysisId=(int)($_POST['analysis_id']??0);try{$count=NotificationAnalysisService::addItems($analysisId,(array)($_POST['ids']??[]));Flash::set('success',$count.' ocorrência(s) adicionada(s).');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::back('/notifications/analyses/view?id='.$analysisId);}
  public static function removeItem():void{self::postGuard('notifications.analyze');$analysisId=(int)($_POST['analysis_id']??0);try{NotificationAnalysisService::removeItem($analysisId,(int)($_POST['notification_id']??0));Flash::set('success','Ocorrência removida da análise.');}catch(\Throwable$e){Flash::set('error',$e->getMessage());}self::back('/notifications/analyses/view?id='.$analysisId);}
  private static function postGuard(string$permission):void{AdminGuard::enforce($permission);if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada. Tente novamente.');self::back('/notifications');}}
+ private static function internalGuard():void{if(!Auth::check())self::json(['ok'=>false,'message'=>'Sessão expirada.'],401);}
+ private static function json(array$data,int$status=200):never{http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);exit;}
  private static function back(string$url):never{header('Location: '.$url);exit;}
 }

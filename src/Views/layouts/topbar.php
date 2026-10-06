@@ -11,10 +11,13 @@ $name = $avatarData['name']; $initials = $avatarData['initials']; $photo = $avat
         <span class="chat-topbar-badge" id="chat-topbar-badge" hidden>0</span>
     </a>
     <?php endif; ?>
-    <button class="notification-button" type="button" aria-label="Notificações" title="Notificações">
+    <div class="internal-notifications">
+    <button class="notification-button" id="notification-center-toggle" type="button" aria-label="Notificações" title="Notificações" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
-        <span class="notification-dot" aria-hidden="true"></span>
+        <span class="notification-topbar-badge" id="notification-topbar-badge" hidden>0</span>
     </button>
+    <section class="notification-center" id="notification-center" hidden aria-label="Notificações recentes"><header><div><strong>Notificações</strong><small id="notification-center-summary">Nenhuma não lida</small></div><button type="button" id="notification-mark-all">Marcar todas como lidas</button></header><div id="notification-center-list" class="notification-center-list"><p class="notification-center-empty">Carregando...</p></div><?php if (\BloodHub\Core\Permission::can('notifications.view')): ?><footer><a href="/notifications">Ver notificações de CQ</a></footer><?php endif; ?></section>
+    </div>
     <details class="user-menu">
         <summary class="user-trigger">
             <?php if ($photo !== ''): ?><img class="avatar avatar-image" src="<?= htmlspecialchars($photo, ENT_QUOTES, 'UTF-8') ?>" alt="Foto de <?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>"><?php else: ?><span class="avatar" aria-hidden="true"><?= htmlspecialchars($initials, ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
@@ -29,3 +32,4 @@ $name = $avatarData['name']; $initials = $avatarData['initials']; $photo = $avat
     </details>
 </div>
 <?php if (\BloodHub\Core\Permission::can('chat.view')): ?><script src="/assets/js/chat-badge.js" defer></script><?php endif; ?>
+<script>window.BloodHubCsrf=<?=json_encode(\BloodHub\Core\Csrf::token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="/assets/js/internal-notifications.js" defer></script>

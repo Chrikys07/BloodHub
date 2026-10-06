@@ -2067,7 +2067,7 @@ INSERT INTO `permissions` (`id`, `permission_key`, `name`, `module`, `descriptio
 ('497', 'production.admin', 'Administrar produção', 'production', NULL, 'active', '2026-10-02 14:44:15'),
 ('506', 'sampling_schedule.view', 'Visualizar cronograma de envio', 'sampling_schedule', NULL, 'active', '2026-10-02 15:32:58'),
 ('507', 'sampling_schedule.admin', 'Administrar regras do cronograma', 'sampling_schedule', NULL, 'active', '2026-10-02 15:32:58'),
-('508', 'reports.quality_control.view', 'Visualizar relat??rio gerencial de CQ', '', 'Consulta e exporta????o dos resultados vigentes de Controle de Qualidade.', 'active', '2026-10-02 18:53:51'),
+('508', 'reports.quality_control.view', 'Visualizar relatório gerencial de CQ', '', 'Consulta e exportação dos resultados vigentes de Controle de Qualidade.', 'active', '2026-10-02 18:53:51'),
 ('509', 'indicators.view', 'Visualizar indicadores', 'indicators', 'Consulta de indicadores, análises e planos de ação.', 'active', '2026-10-02 20:22:13'),
 ('510', 'indicators.analysis.manage', 'Gerenciar análises de indicadores', 'indicators', 'Edição operacional por responsáveis cadastrados.', 'active', '2026-10-02 20:22:13'),
 ('511', 'indicators.config.manage', 'Configurar indicadores', 'indicators', 'Metadados, metas, responsáveis e ativação.', 'active', '2026-10-02 20:22:13'),

@@ -26,6 +26,17 @@ $initials=mb_strtoupper(mb_substr($parts[0],0,1).(count($parts)>1?mb_substr($par
             </form>
         </div>
     </article>
+    <article class="profile-card profile-password-card">
+        <div class="section-heading"><div><h2>Alterar senha</h2><p>Confirme sua senha atual e escolha uma nova senha com pelo menos 8 caracteres.</p></div></div>
+        <form class="profile-password-form" method="post" action="/profile">
+            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf,ENT_QUOTES,'UTF-8') ?>">
+            <input type="hidden" name="action" value="change_password">
+            <label><span>Senha atual</span><input type="password" name="current_password" required autocomplete="current-password"></label>
+            <label><span>Nova senha</span><input type="password" name="new_password" required minlength="8" autocomplete="new-password"></label>
+            <label><span>Confirmar nova senha</span><input type="password" name="new_password_confirmation" required minlength="8" autocomplete="new-password"></label>
+            <div class="profile-password-actions"><button class="button" type="submit">Alterar senha</button></div>
+        </form>
+    </article>
 </section>
 <script>document.querySelector('#profile-photo')?.addEventListener('change',function(){document.querySelector('#profile-photo-label').textContent=this.files[0]?.name||'Escolher foto'});</script>
 <?php require dirname(__DIR__) . '/layouts/admin_end.php'; ?>
