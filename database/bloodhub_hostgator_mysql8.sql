@@ -1998,7 +1998,7 @@ INSERT INTO `billing_services` (`id`, `service_code`, `name`, `display_order`, `
 INSERT INTO `clients` (`id`, `name`, `client_type`, `document`, `address`, `district`, `city`, `state`, `postal_code`, `contact_name`, `email`, `phone`, `phone_extension`, `status`, `created_at`, `updated_at`) VALUES
 ('1', 'Colsan Associação Beneficente de Coleta de Sangue', 'internal', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-08-29 18:13:05', '2026-08-29 18:13:05');
 
--- Dados preservados: `permissions` (88 registro(s))
+-- Dados preservados: `permissions` (89 registro(s))
 INSERT INTO `permissions` (`id`, `permission_key`, `name`, `module`, `description`, `status`, `created_at`) VALUES
 ('1', 'dashboard.global.view', 'Visualizar Dashboard Global', 'dashboard', NULL, 'active', '2026-08-29 09:21:00'),
 ('2', 'dashboard.operational.view', 'Visualizar Dashboard Operacional', 'dashboard', NULL, 'active', '2026-08-29 09:21:00'),
@@ -2089,6 +2089,9 @@ INSERT INTO `permissions` (`id`, `permission_key`, `name`, `module`, `descriptio
 ('639', 'laboratory_equipment.manage', 'Gerenciar equipamentos laboratoriais', 'admin', NULL, 'active', '2026-10-03 08:47:08'),
 ('645', 'transfusion_reaction_consultation.view', 'Consultar reações transfusionais', 'transfusion_reaction_consultation', NULL, 'active', '2026-10-03 10:53:26');
 
+INSERT INTO `permissions` (`id`, `permission_key`, `name`, `module`, `description`, `status`, `created_at`) VALUES
+('646', 'admin.reports_settings.manage', 'Gerenciar laudos', 'admin', 'Permite gerenciar as configurações administrativas de laudos.', 'active', '2026-10-09 23:48:24');
+
 -- Dados preservados: `preservatives` (2 registro(s))
 INSERT INTO `preservatives` (`id`, `code`, `name`, `active`, `created_at`, `updated_at`) VALUES
 ('2', 'PRS001', 'CPDA-1', '1', '2026-09-06 11:53:29', '2026-09-13 21:51:32'),
@@ -2102,7 +2105,7 @@ INSERT INTO `roles` (`id`, `name`, `slug`, `description`, `status`, `created_at`
 ('4', 'Agência Transfusional', 'agencia-transfusional', 'Cadastro e acompanhamento de reações transfusionais', 'active', '2026-08-29 09:21:00', '2026-08-29 09:21:00'),
 ('5', 'Gestão', 'gestao', 'Acesso consultivo ao Dashboard Global', 'active', '2026-08-29 09:21:00', '2026-08-29 09:21:00');
 
--- Dados preservados: `role_permissions` (184 registro(s))
+-- Dados preservados: `role_permissions` (185 registro(s))
 INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 ('1', '1'),
 ('1', '2'),
@@ -2190,6 +2193,7 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 ('1', '638'),
 ('1', '639'),
 ('1', '645'),
+('1', '646'),
 ('2', '1'),
 ('2', '2'),
 ('2', '4'),

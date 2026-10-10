@@ -4,7 +4,7 @@ VALUES (
     'admin.reports_settings.manage',
     'Gerenciar laudos',
     'admin',
-    'Gerenciar as configurações administrativas de laudos.',
+    'Permite gerenciar as configurações administrativas de laudos.',
     'active'
 )
 ON DUPLICATE KEY UPDATE
