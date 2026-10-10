@@ -28,12 +28,26 @@ $check(!$with(['admin.supplies.manage'])('admin.users.manage'), 'LCQH acessa /ad
 $twoModules = Configuration::modules($with(['admin.supplies.manage', 'laboratory_equipment.manage']));
 $check($titles($twoModules) === ['Equipamentos', 'Insumos e lotes'], 'LCQH não visualiza exatamente equipamentos e insumos.');
 
-// 4. Processing role without configuration permissions.
+// 4. Report operations do not grant access to report settings.
+$reportOperations = $with(['reports.release.view', 'reports.release.manage', 'reports.release.revise', 'reports.release.cancel']);
+$check(!Configuration::hasAnyPermission($reportOperations), 'Permissões operacionais de laudos exibem Configuração.');
+$check(Configuration::modules($reportOperations) === [], 'Permissões operacionais de laudos exibem Configuração > Laudos.');
+
+// 5. Report settings alone display Configuration with only the Reports module.
+$reportsOnly = Configuration::modules($with(['admin.reports_settings.manage']));
+$check(Configuration::hasAnyPermission($with(['admin.reports_settings.manage'])), 'Gerenciar laudos não exibe Configuração.');
+$check($titles($reportsOnly) === ['Laudos'], 'Gerenciar laudos não exibe somente o módulo Laudos.');
+
+// 6. Report settings combine independently with other administrative modules.
+$reportsAndSupplies = Configuration::modules($with(['admin.supplies.manage', 'admin.reports_settings.manage']));
+$check($titles($reportsAndSupplies) === ['Laudos', 'Insumos e lotes'], 'Laudos e Insumos não foram combinados corretamente.');
+
+// 7. Processing role without configuration permissions.
 $none = $with([]);
 $check(!Configuration::hasAnyPermission($none), 'Perfil sem permissão visualiza Configuração.');
 $check(Configuration::modules($none) === [], 'Perfil sem permissão recebeu cards de configuração.');
 
-// 5. Permission removal is reflected on the next check (Permission::can reads RBAC from DB on every call).
+// 8. Permission removal is reflected on the next check (Permission::can reads RBAC from DB on every call).
 $granted = ['admin.supplies.manage'];
 $dynamic = static function (string $permission) use (&$granted): bool {
     return in_array($permission, $granted, true);
@@ -47,6 +61,7 @@ $sources = [
     '/admin/supplies' => [dirname(__DIR__).'/src/Controllers/Admin/SupplyController.php', "AdminGuard::enforce(self::PERMISSION)", "admin.supplies.manage"],
     '/admin/users' => [dirname(__DIR__).'/src/Controllers/Admin/UserController.php', "AdminGuard::enforce(self::PERMISSION)", "admin.users.manage"],
     '/admin/permissions' => [dirname(__DIR__).'/src/Controllers/Admin/PermissionController.php', "AdminGuard::enforce(self::PERMISSION)", "admin.permissions.manage"],
+    '/admin/reports' => [dirname(__DIR__).'/src/Controllers/Admin/ReportConfigController.php', "AdminGuard::enforce(self::PERMISSION)", "admin.reports_settings.manage"],
 ];
 foreach ($sources as $route => [$file, $guard, $permission]) {
     $source = (string)file_get_contents($file);
@@ -58,4 +73,4 @@ if ($failures !== []) {
     exit(1);
 }
 
-fwrite(STDOUT, "OK: 5 cenários de Configuração/RBAC e guards críticos validados.\n");
+fwrite(STDOUT, "OK: 8 cenários de Configuração/RBAC e guards críticos validados.\n");

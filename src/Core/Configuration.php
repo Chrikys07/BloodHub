@@ -8,7 +8,7 @@ final class Configuration
     /** Central catalog: visual order and matching backend permission. */
     private const MODULES = [
         ['title'=>'Equipamentos','description'=>'Cadastre equipamentos laboratoriais e configure vínculos vigentes com testes.','url'=>'/admin/equipment','icon'=>'tests','permission'=>'laboratory_equipment.manage'],
-        ['title'=>'Laudos','description'=>'Configure a elegibilidade institucional para emissão de laudos.','url'=>'/admin/reports','icon'=>'tests','permission'=>'reports.release.manage'],
+        ['title'=>'Laudos','description'=>'Configure a elegibilidade institucional para emissão de laudos.','url'=>'/admin/reports','icon'=>'tests','permission'=>'admin.reports_settings.manage'],
         ['title'=>'Faturamento','description'=>'Configure centros de custo, serviços institucionais e associações de resultados finais.','url'=>'/admin/billing','icon'=>'tests','permission'=>'billing.config.manage'],
         ['title'=>'Indicadores','description'=>'Configure metadados, metas vigentes e responsáveis pelos indicadores institucionais.','url'=>'/admin/indicators','icon'=>'tests','permission'=>'indicators.config.manage'],
         ['title'=>'Metas de Conformidade','description'=>'Configure metas agregadas do Dashboard por hemocomponente e teste, com vigência histórica.','url'=>'/admin/dashboard-targets','icon'=>'tests','permission'=>'indicators.config.manage'],

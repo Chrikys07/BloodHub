@@ -7,9 +7,11 @@ use BloodHub\Services\LaboratoryReportService;
 
 final class ReportConfigController
 {
+    private const PERMISSION = 'admin.reports_settings.manage';
+
     public static function index():void
     {
-        AdminGuard::enforce(LaboratoryReportService::MANAGE);
+        AdminGuard::enforce(self::PERMISSION);
         $eligibility=LaboratoryReportService::eligibilitySettings();
         $flash=Flash::pull();$csrf=Csrf::token();$userAuth=Auth::user();
         $pageTitle='Configuração de Laudos';
@@ -18,7 +20,7 @@ final class ReportConfigController
     }
     public static function save():void
     {
-        AdminGuard::enforce(LaboratoryReportService::MANAGE);
+        AdminGuard::enforce(self::PERMISSION);
         if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada. Tente novamente.');self::back();}
         LaboratoryReportService::setEligibilitySettings($_POST['eligibility']??[]);
         Flash::set('success','Elegibilidade de laudos atualizada.');self::back();
