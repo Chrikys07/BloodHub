@@ -11,7 +11,9 @@ final class NotificationController
  public static function internalRecent():void
  {self::internalGuard();self::json(['ok'=>true,'unread_count'=>InternalNotificationService::unreadCount((int)Auth::user()['id']),'notifications'=>InternalNotificationService::recent((int)Auth::user()['id'])]);}
  public static function internalRead():void
- {self::internalGuard();if(!Csrf::validate($_POST['_csrf']??null))self::json(['ok'=>false,'message'=>'Sessão expirada.'],419);$count=InternalNotificationService::markRead((int)Auth::user()['id'],(array)($_POST['ids']??[]));self::json(['ok'=>true,'updated'=>$count,'unread_count'=>InternalNotificationService::unreadCount((int)Auth::user()['id'])]);}
+ {self::internalGuard();if(!Csrf::validate($_POST['_csrf']??null))self::json(['ok'=>false,'message'=>'Sessão expirada.'],419);$user=(int)Auth::user()['id'];$count=!empty($_POST['all'])?InternalNotificationService::markAllRead($user):InternalNotificationService::markRead($user,(array)($_POST['ids']??[]));self::json(['ok'=>true,'updated'=>$count,'unread_count'=>InternalNotificationService::unreadCount($user)]);}
+ public static function internalIndex():void
+ {$user=(int)(Auth::user()['id']??0);if(!$user){header('Location: /login');exit;}$notifications=InternalNotificationService::recent($user,100);$pageTitle='Central de notificações';$pageSubtitle='Alertas internos direcionados ao seu perfil e escopo.';$flash=Flash::pull();require dirname(__DIR__).'/Views/notifications/internal.php';}
  public static function index():void
  {
   AdminGuard::enforce('notifications.view');$pdo=Database::connection();[$scope,$params]=QcNotificationService::scopeSql('n');$where=[$scope];$f=$_GET;

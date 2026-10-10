@@ -26,7 +26,7 @@ final class CryoprecipitateResultService
 
         $tare=null;$density=null;$volume=null;$warning=null;
         if($gross!==null){
-            if(empty($sample['bag_brand_id']))$warning='Referência de bolsa não vinculada; não foi possível calcular o volume.';
+            if(empty($sample['bag_brand_id']))$warning='Marca de bolsa não vinculada; não foi possível calcular o volume.';
             else try{$tare=BagTareResolver::resolve((int)$sample['bag_brand_id'],(int)$sample['blood_component_id']);}catch(DomainException $e){$warning=$e->getMessage();}
             $q=Database::connection()->prepare('SELECT density FROM blood_components WHERE id=:id');$q->execute(['id'=>$sample['blood_component_id']]);$densityRaw=$q->fetchColumn();
             if($densityRaw!==false&&$densityRaw!==null&&(float)$densityRaw>0)$density=(float)$densityRaw;elseif($warning===null)$warning='Densidade não configurada para o hemocomponente CRIO.';

@@ -39,6 +39,7 @@
 /* Keep table cells native; flex only the actions inside them. */
 .table-actions{display:flex;align-items:center;gap:12px;white-space:nowrap}
 .table-actions form{margin:0}
+.table-actions button.table-action{border:0;background:transparent;padding:4px 6px;cursor:pointer;font:inherit}.table-action-warning{color:#a16207}.table-action-positive{color:#15803d}.billing-catalog-list>div>.table-actions{margin-top:5px;padding:0;border:0}
 @media(max-width:1000px){.login-logo{width:min(72vw,440px);max-width:100%;margin-bottom:0}}
 @media(max-width:640px){.login-logo{width:min(85vw,320px);max-width:100%}.table-actions{white-space:normal;flex-wrap:wrap}}
 
@@ -235,3 +236,6 @@
 .profile-password-card{grid-column:2;padding:26px}.profile-password-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end}.profile-password-form label span{display:block;margin-bottom:7px;color:#334155;font-size:13px;font-weight:800}.profile-password-form input{width:100%;padding:12px 13px;border:1px solid #cbd5e1;border-radius:11px;background:#fff;font:inherit;outline:none}.profile-password-form input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(185,28,28,.1)}.profile-password-actions{grid-column:1/-1;padding-top:2px}
 @media(max-width:1100px){.profile-password-form{grid-template-columns:1fr}}
 @media(max-width:760px){.profile-password-card{grid-column:auto}}
+.notification-center-item.priority-warning .notification-state{background:#d97706}
+.notification-center-item.priority-critical .notification-state{background:#b91c1c}
+.notification-page-list{max-height:none}

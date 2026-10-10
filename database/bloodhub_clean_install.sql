@@ -118,10 +118,14 @@ CREATE TABLE `supply_lots` (
   `quantity_initial` decimal(14,4) DEFAULT NULL,
   `quantity_available` decimal(14,4) DEFAULT NULL,
   `status` enum('active','inactive','exhausted','blocked') NOT NULL DEFAULT 'active',
+  `is_in_use` tinyint(1) NOT NULL DEFAULT 0,
+  `in_use_unique` tinyint(1) GENERATED ALWAYS AS ((case when (`is_in_use` = 1) then 1 else NULL end)) STORED,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_supply_lot` (`supply_id`,`lot_number`),
+  UNIQUE KEY `uk_supply_lot_in_use` (`supply_id`,`in_use_unique`),
+  KEY `idx_supply_lots_in_use` (`is_in_use`),
   KEY `idx_supply_lots_expiration` (`expiration_date`),
   KEY `idx_supply_lots_status` (`status`),
   CONSTRAINT `fk_supply_lots_supply` FOREIGN KEY (`supply_id`) REFERENCES `supplies` (`id`)
@@ -298,10 +302,9 @@ CREATE TABLE `bag_brands` (
   `active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `active_brand_key` varchar(180) GENERATED ALWAYS AS (case when `active` = 1 then lcase(trim(`name`)) else NULL end) STORED,
+  `active_brand_key` varchar(220) GENERATED ALWAYS AS (case when `active` = 1 and `preservative_id` is not null then concat(lcase(trim(`name`)),'#',`preservative_id`) else NULL end) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_bag_brands_name_reference` (`name`,`reference_number`),
-  UNIQUE KEY `uk_bag_brands_one_active_name` (`active_brand_key`),
+  UNIQUE KEY `uk_bag_brands_active_name_preservative` (`active_brand_key`),
   KEY `fk_bag_brands_preservative` (`preservative_id`),
   CONSTRAINT `fk_bag_brands_preservative` FOREIGN KEY (`preservative_id`) REFERENCES `preservatives` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

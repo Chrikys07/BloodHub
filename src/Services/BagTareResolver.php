@@ -7,8 +7,8 @@ use PDO;
 
 final class BagTareResolver
 {
-    public const NOT_CONFIGURED = 'Tara não configurada para esta referência e hemocomponente.';
-    public const AMBIGUOUS = 'Existe mais de uma tara configurada para este hemocomponente e referência de bolsa.';
+    public const NOT_CONFIGURED = 'Tara não configurada para esta marca de bolsa e hemocomponente.';
+    public const AMBIGUOUS = 'Existe mais de uma tara configurada para este hemocomponente e marca de bolsa.';
 
     /** Retorna null quando não há configuração e lança DomainException se ela for ambígua. */
     public static function resolve(int $bagBrandId, int $bloodComponentId): ?array

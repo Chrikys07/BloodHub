@@ -159,10 +159,14 @@ CREATE TABLE IF NOT EXISTS supply_lots (
     quantity_initial DECIMAL(14,4) NULL,
     quantity_available DECIMAL(14,4) NULL,
     status ENUM('active','inactive','exhausted','blocked') NOT NULL DEFAULT 'active',
+    is_in_use TINYINT(1) NOT NULL DEFAULT 0,
+    in_use_unique TINYINT GENERATED ALWAYS AS (CASE WHEN is_in_use=1 THEN 1 ELSE NULL END) STORED,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_supply_lots_supply FOREIGN KEY (supply_id) REFERENCES supplies(id) ON DELETE RESTRICT,
     UNIQUE KEY uk_supply_lot (supply_id, lot_number),
+    UNIQUE KEY uk_supply_lot_in_use (supply_id, in_use_unique),
+    INDEX idx_supply_lots_in_use (is_in_use),
     INDEX idx_supply_lots_expiration (expiration_date),
     INDEX idx_supply_lots_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -184,11 +188,10 @@ CREATE TABLE IF NOT EXISTS bag_brands (
     preservative_id BIGINT UNSIGNED NULL,
     tare_weight DECIMAL(10,3) NULL,
     active TINYINT(1) NOT NULL DEFAULT 1,
-    active_brand_key VARCHAR(180) GENERATED ALWAYS AS (CASE WHEN active = 1 THEN LOWER(TRIM(name)) ELSE NULL END) STORED,
+    active_brand_key VARCHAR(220) GENERATED ALWAYS AS (CASE WHEN active = 1 AND preservative_id IS NOT NULL THEN CONCAT(LOWER(TRIM(name)), '#', preservative_id) ELSE NULL END) STORED,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_bag_brands_name_reference (name, reference_number),
-    UNIQUE KEY uk_bag_brands_one_active_name (active_brand_key)
+    UNIQUE KEY uk_bag_brands_active_name_preservative (active_brand_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS bag_brand_tares (

@@ -8,8 +8,18 @@ final class ShipmentAccess
 {
     public static function scopeSql(string $alias='sh'): array
     {
-        if (Permission::can('samples.scope.global')) return ['1=1', []];
-        return ["EXISTS (SELECT 1 FROM users su LEFT JOIN user_units uu ON uu.user_id=su.id AND uu.unit_id={$alias}.origin_unit_id WHERE su.id=:scope_user AND (su.primary_unit_id={$alias}.origin_unit_id OR uu.unit_id IS NOT NULL))", ['scope_user'=>(int)(Auth::user()['id']??0)]];
+        if (Auth::isAdministrator()) return ['1=1', []];
+
+        $userId=(int)(Auth::user()['id']??0);
+        $directOrigin="(su.primary_unit_id={$alias}.origin_unit_id OR EXISTS (SELECT 1 FROM user_units suo WHERE suo.user_id=su.id AND suo.unit_id={$alias}.origin_unit_id))";
+        $directDestination="(su.primary_unit_id={$alias}.destination_unit_id OR EXISTS (SELECT 1 FROM user_units sud WHERE sud.user_id=su.id AND sud.unit_id={$alias}.destination_unit_id))";
+        $authorizedOrigin="({$directOrigin} OR (su.client_id IS NOT NULL AND su.client_id=COALESCE({$alias}.client_id,(SELECT ou.client_id FROM units ou WHERE ou.id={$alias}.origin_unit_id))) )";
+        $ownsShipment="su.id IN ({$alias}.responsible_user_id,{$alias}.created_by,{$alias}.sent_by)";
+
+        return [
+            "EXISTS (SELECT 1 FROM users su JOIN roles sr ON sr.id=su.role_id AND sr.status='active' WHERE su.id=:scope_user AND su.status='active' AND ((sr.slug='processamento' AND {$directOrigin}) OR ({$ownsShipment} AND {$authorizedOrigin}) OR (sr.slug='lcqh' AND {$directDestination})))",
+            ['scope_user'=>$userId],
+        ];
     }
 
     public static function shipment(int $id, bool $lock=false): ?array

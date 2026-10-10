@@ -12,7 +12,7 @@ final class WeightVolumeService
     {
         $gross=self::decimal($rawGross);
         if($gross===null||$gross<=0)throw new DomainException('Peso bruto deve ser numérico e maior que zero.');
-        if(empty($sample['bag_brand_id']))throw new DomainException('Referência de bolsa não vinculada à amostra.');
+        if(empty($sample['bag_brand_id']))throw new DomainException('Marca de bolsa não vinculada à amostra.');
         $tare=BagTareResolver::resolve((int)$sample['bag_brand_id'],(int)$sample['blood_component_id']);
         if(!$tare)throw new DomainException(BagTareResolver::NOT_CONFIGURED);
         $pdo=Database::connection();$q=$pdo->prepare('SELECT density FROM blood_components WHERE id=:id');$q->execute(['id'=>$sample['blood_component_id']]);$density=$q->fetchColumn();
@@ -25,5 +25,5 @@ final class WeightVolumeService
         $after=['gross_weight'=>$gross,'bag_brand_tare_id'=>(int)$tare['tare_id'],'tare_weight_used'=>(float)$tare['tare_weight'],'net_weight'=>$net,'density_used'=>(float)$density,'volume_ml'=>$volume];
         Auth::registerAudit('laboratory_weight.save','samples',(int)$sample['id'],$before?:null,$after);return $after;
     }
-    private static function decimal(mixed $raw):?float{$v=trim((string)$raw);if($v==='')return null;$v=str_replace(',','.',str_replace('.','',$v));return is_numeric($v)&&is_finite((float)$v)?(float)$v:null;}
+    private static function decimal(mixed $raw):?float{return DecimalNormalizer::parse($raw);}
 }

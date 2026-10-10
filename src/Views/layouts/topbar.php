@@ -16,7 +16,7 @@ $name = $avatarData['name']; $initials = $avatarData['initials']; $photo = $avat
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         <span class="notification-topbar-badge" id="notification-topbar-badge" hidden>0</span>
     </button>
-    <section class="notification-center" id="notification-center" hidden aria-label="Notificações recentes"><header><div><strong>Notificações</strong><small id="notification-center-summary">Nenhuma não lida</small></div><button type="button" id="notification-mark-all">Marcar todas como lidas</button></header><div id="notification-center-list" class="notification-center-list"><p class="notification-center-empty">Carregando...</p></div><?php if (\BloodHub\Core\Permission::can('notifications.view')): ?><footer><a href="/notifications">Ver notificações de CQ</a></footer><?php endif; ?></section>
+    <section class="notification-center" id="notification-center" hidden aria-label="Notificações recentes"><header><div><strong>Notificações</strong><small id="notification-center-summary">Nenhuma não lida</small></div><button type="button" id="notification-mark-all">Marcar todas como lidas</button></header><div id="notification-center-list" class="notification-center-list"><p class="notification-center-empty">Carregando...</p></div><footer><a href="/internal-notifications">Ver todas</a><?php if (\BloodHub\Core\Permission::can('notifications.view')): ?> · <a href="/notifications">Ocorrências de CQ</a><?php endif; ?></footer></section>
     </div>
     <details class="user-menu">
         <summary class="user-trigger">

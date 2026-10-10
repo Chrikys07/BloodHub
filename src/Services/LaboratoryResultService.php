@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace BloodHub\Services;
 
-use BloodHub\Core\{Auth,Database};
+use BloodHub\Core\{Auth,Database,SupplyInUseValidator};
 use DomainException;
 use PDO;
 
@@ -12,6 +12,7 @@ final class LaboratoryResultService
     {
         if(!in_array($context,['quality_control','validation'],true)||($sample['purpose']??'')!==$context)throw new DomainException('Contexto laboratorial inválido.');
         if(($sample['status']??'')==='completed')throw new DomainException('Amostra concluída está em modo somente leitura.');
+        SupplyInUseValidator::assertSample((int)$sample['id'],'salvar os resultados desta amostra');
         $id=(int)$sample['id'];self::saveIdentity($sample,$values);$code=strtoupper((string)$sample['component_code']);
         if(WashedRedCellResultService::supports($code)){WashedRedCellResultService::save($sample,$values);self::finish($id);return;}
         if(PlateletResultService::supports($code)){PlateletResultService::save($id,$values);self::finish($id);return;}

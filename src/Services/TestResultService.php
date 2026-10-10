@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace BloodHub\Services;
 
-use BloodHub\Core\{Auth,Database};
+use BloodHub\Core\{Auth,Database,SupplyInUseValidator};
 use DomainException;
 use PDO;
 
@@ -20,6 +20,7 @@ final class TestResultService
         try{
             $test=self::configuredTest($sampleId,$testCode);
             if(!$test)throw new DomainException('O teste não está ativo e configurado para este hemocomponente.');
+            $usedLots=SupplyInUseValidator::assertTest((int)$test['id']);
             if($test['result_type']!=='numeric')throw new DomainException('O teste configurado não aceita resultado numérico.');
             if($testCode===self::CODES['hemolysis'])throw new DomainException('Grau de Hemólise é calculado e não aceita digitação manual.');
             $st=$pdo->prepare('SELECT id,status FROM sample_tests WHERE sample_id=:sample AND test_id=:test ORDER BY id LIMIT 1 FOR UPDATE');$st->execute(['sample'=>$sampleId,'test'=>$test['id']]);$sampleTest=$st->fetch(PDO::FETCH_ASSOC);
@@ -28,6 +29,7 @@ final class TestResultService
             if($before){$pdo->prepare('UPDATE test_results SET result_value_numeric=:value,result_value_text=NULL,recorded_by=:user,recorded_at=NOW() WHERE id=:id')->execute(['value'=>$number,'user'=>Auth::user()['id']??null,'id'=>$before['id']]);$resultId=(int)$before['id'];}
             else{$pdo->prepare('INSERT INTO test_results(sample_test_id,result_value_numeric,recorded_by) VALUES(:sample_test,:value,:user)')->execute(['sample_test'=>$sampleTest['id'],'value'=>$number,'user'=>Auth::user()['id']??null]);$resultId=(int)$pdo->lastInsertId();}
             $pdo->prepare("UPDATE sample_tests SET status='completed',started_at=COALESCE(started_at,NOW()),completed_at=NOW(),executed_by=:user WHERE id=:id")->execute(['user'=>Auth::user()['id']??null,'id'=>$sampleTest['id']]);
+            SupplyInUseValidator::captureResultLots($resultId,(int)$test['id'],$usedLots);
             self::refreshSampleStatus($sampleId);
             Auth::registerAudit('quality_result.save','test_results',$resultId,$before?:null,['test_code'=>$testCode,'numeric_value'=>$number]);
             if(in_array($testCode,[self::CODES['hematocrit'],self::CODES['hemoglobin']],true))CalculatedTestService::recalculateHemolysis($sampleId);
@@ -42,10 +44,10 @@ final class TestResultService
     {
         if($value===null||trim((string)$value)==='')return [];
         $text=trim((string)$value);$pdo=Database::connection();$own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();
-        try{$test=self::configuredTest($sampleId,$testCode);if(!$test)throw new DomainException('O teste não está ativo e configurado para este hemocomponente.');if(!in_array($test['result_type'],['text','select','boolean','positive_negative'],true))throw new DomainException('O teste configurado não aceita resultado textual.');
+        try{$test=self::configuredTest($sampleId,$testCode);if(!$test)throw new DomainException('O teste não está ativo e configurado para este hemocomponente.');$usedLots=SupplyInUseValidator::assertTest((int)$test['id']);if(!in_array($test['result_type'],['text','select','boolean','positive_negative'],true))throw new DomainException('O teste configurado não aceita resultado textual.');
             $st=$pdo->prepare('SELECT id FROM sample_tests WHERE sample_id=:sample AND test_id=:test ORDER BY id LIMIT 1 FOR UPDATE');$st->execute(['sample'=>$sampleId,'test'=>$test['id']]);$sampleTestId=(int)$st->fetchColumn();if(!$sampleTestId){$pdo->prepare("INSERT INTO sample_tests(sample_id,test_id,status,started_at,executed_by) VALUES(:sample,:test,'in_progress',NOW(),:user)")->execute(['sample'=>$sampleId,'test'=>$test['id'],'user'=>Auth::user()['id']??null]);$sampleTestId=(int)$pdo->lastInsertId();}
             $old=$pdo->prepare('SELECT * FROM test_results WHERE sample_test_id=:id ORDER BY id DESC LIMIT 1');$old->execute(['id'=>$sampleTestId]);$before=$old->fetch(PDO::FETCH_ASSOC);if($before){$pdo->prepare('UPDATE test_results SET result_value_text=:value,result_value_numeric=NULL,recorded_by=:user,recorded_at=NOW() WHERE id=:id')->execute(['value'=>$text,'user'=>Auth::user()['id']??null,'id'=>$before['id']]);$resultId=(int)$before['id'];}else{$pdo->prepare('INSERT INTO test_results(sample_test_id,result_value_text,recorded_by) VALUES(:sample_test,:value,:user)')->execute(['sample_test'=>$sampleTestId,'value'=>$text,'user'=>Auth::user()['id']??null]);$resultId=(int)$pdo->lastInsertId();}
-            $pdo->prepare("UPDATE sample_tests SET status='completed',started_at=COALESCE(started_at,NOW()),completed_at=NOW(),executed_by=:user WHERE id=:id")->execute(['user'=>Auth::user()['id']??null,'id'=>$sampleTestId]);self::refreshSampleStatus($sampleId);SpecificationEvaluator::persistForResult($resultId);EquipmentService::attach($resultId,filter_var($_POST['equipment_id'][$testCode]??null,FILTER_VALIDATE_INT)?:null);Auth::registerAudit('quality_result.save','test_results',$resultId,$before?:null,['test_code'=>$testCode,'text_value'=>$text]);if($own)$pdo->commit();return ['id'=>$resultId,'value'=>$text];
+            $pdo->prepare("UPDATE sample_tests SET status='completed',started_at=COALESCE(started_at,NOW()),completed_at=NOW(),executed_by=:user WHERE id=:id")->execute(['user'=>Auth::user()['id']??null,'id'=>$sampleTestId]);SupplyInUseValidator::captureResultLots($resultId,(int)$test['id'],$usedLots);self::refreshSampleStatus($sampleId);SpecificationEvaluator::persistForResult($resultId);EquipmentService::attach($resultId,filter_var($_POST['equipment_id'][$testCode]??null,FILTER_VALIDATE_INT)?:null);Auth::registerAudit('quality_result.save','test_results',$resultId,$before?:null,['test_code'=>$testCode,'text_value'=>$text]);if($own)$pdo->commit();return ['id'=>$resultId,'value'=>$text];
         }catch(\Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
     }
 
@@ -79,6 +81,9 @@ final class TestResultService
     }
 
     public static function complete(int $sampleId):array
+    { SampleTestSynchronizer::syncSample($sampleId); SupplyInUseValidator::assertSample($sampleId); return self::completeValidated($sampleId); }
+
+    private static function completeValidated(int $sampleId):array
     {$pdo=Database::connection();$own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();try{SampleTestSynchronizer::syncSample($sampleId);self::recalculateHemoglobinPerUnit($sampleId);PlateletResultService::recalculate($sampleId);HemolysisResultService::synchronizeStage($sampleId);CalculatedTestService::recalculateHemolysis($sampleId);SpecificationEvaluator::evaluateSampleResults($sampleId);$outside=SpecificationEvaluator::nonconforming($sampleId);if($outside&&empty($_POST['specification_acknowledged'])){if($own)$pdo->commit();return [['code'=>'SPECIFICATION_ACK','name'=>'ciência dos resultados fora da especificação']];}if($outside){SpecificationEvaluator::acknowledge($sampleId,(int)(Auth::user()['id']??0));foreach($outside as$item)Auth::registerAudit('QC_NONCONFORMITY_DETECTED','test_results',(int)$item['test_result_id'],null,['sample_id'=>$sampleId,'test_id'=>(int)$item['test_id'],'specification_id'=>$item['specification_id']??null,'result_value'=>$item['result_value']]);}$missing=self::pendingRequirements($sampleId);if($missing){if($own)$pdo->commit();return $missing;}CpafYieldClassificationService::recalculate($sampleId,true);$pdo->prepare("UPDATE samples SET status='completed' WHERE id=:id AND status IN ('received','in_analysis','partial_results')")->execute(['id'=>$sampleId]);QcNotificationService::createForSample($sampleId);Auth::registerAudit('QC_RESULT_COMPLETED','samples',$sampleId,null,['status'=>'completed']);if($own){$pdo->commit();QcNotificationService::deliverPendingForSample($sampleId);}return [];}catch(\Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}}
 
     public static function refreshSampleStatus(int $sampleId):void

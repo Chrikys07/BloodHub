@@ -102,7 +102,7 @@ final class ReceptionService
 
     public static function samples(int $shipmentId, bool $lock=false): array
     {
-        $sql="SELECT s.*,bc.code component_code,bc.name component_name,CONCAT(bb.name,IF(bb.reference_number IS NULL OR bb.reference_number='','',CONCAT(' | Ref. ',bb.reference_number))) bag_brand_name,p.code preservative_code,p.name preservative_name,ru.name received_by_name,xu.name rejected_by_name FROM samples s LEFT JOIN blood_components bc ON bc.id=s.blood_component_id LEFT JOIN bag_brands bb ON bb.id=s.bag_brand_id LEFT JOIN preservatives p ON p.id=s.preservative_id_snapshot LEFT JOIN users ru ON ru.id=s.received_by LEFT JOIN users xu ON xu.id=s.rejected_by WHERE s.sample_shipment_id=:id ORDER BY s.id".($lock?' FOR UPDATE':'');
+        $sql="SELECT s.*,bc.code component_code,bc.name component_name,CONCAT(bb.name,IF(COALESCE(p.code,p.name) IS NULL,'',CONCAT(' · ',COALESCE(p.code,p.name)))) bag_brand_name,p.code preservative_code,p.name preservative_name,ru.name received_by_name,xu.name rejected_by_name FROM samples s LEFT JOIN blood_components bc ON bc.id=s.blood_component_id LEFT JOIN bag_brands bb ON bb.id=s.bag_brand_id LEFT JOIN preservatives p ON p.id=COALESCE(s.preservative_id_snapshot,bb.preservative_id) LEFT JOIN users ru ON ru.id=s.received_by LEFT JOIN users xu ON xu.id=s.rejected_by WHERE s.sample_shipment_id=:id ORDER BY s.id".($lock?' FOR UPDATE':'');
         $stmt=Database::connection()->prepare($sql);$stmt->execute(['id'=>$shipmentId]);$rows=$stmt->fetchAll(PDO::FETCH_ASSOC);foreach($rows as &$row)$row['is_expired']=ShelfLifeResolver::isExpired($row['expiration_date']??null);unset($row);return $rows;
     }
 

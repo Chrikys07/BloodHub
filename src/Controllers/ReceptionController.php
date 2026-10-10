@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace BloodHub\Controllers;
 
 use BloodHub\Core\{AdminGuard,Auth,Csrf,Database,Flash,Permission,SamplePurpose};
-use BloodHub\Services\{BacteriologyEligibility,ReceptionService,SampleTestSynchronizer};
+use BloodHub\Services\{BacteriologyEligibility,InternalNotificationService,ReceptionService,SampleTestSynchronizer};
 use PDOException;
 use BloodHub\Services\{ShelfLifeResolver,SampleUniquenessService};
 
@@ -21,7 +21,7 @@ final class ReceptionController
         if(!$shipment){self::notFound();return;}
         if(in_array($shipment['status'],['received','rejected'],true)){self::receptionCompleted();return;}
         if(!in_array($shipment['status'],['awaiting_receipt','partially_received'],true)){self::notFound();return;}
-        $brandStmt=Database::connection()->prepare('SELECT b.id,b.name,b.reference_number FROM bag_brands b WHERE (b.active=1 AND NOT EXISTS (SELECT 1 FROM bag_brands newer WHERE newer.active=1 AND LOWER(TRIM(newer.name))=LOWER(TRIM(b.name)) AND (newer.created_at>b.created_at OR (newer.created_at=b.created_at AND newer.id>b.id)))) OR b.id IN (SELECT bag_brand_id FROM samples WHERE sample_shipment_id=:shipment) ORDER BY b.name,b.reference_number');$brandStmt->execute(['shipment'=>$shipment['id']]);
+        $brandStmt=Database::connection()->prepare('SELECT b.id,b.name,p.code preservative_code,p.name preservative_name FROM bag_brands b LEFT JOIN preservatives p ON p.id=b.preservative_id WHERE b.active=1 OR b.id IN (SELECT bag_brand_id FROM samples WHERE sample_shipment_id=:shipment) ORDER BY b.name,p.code,p.name');$brandStmt->execute(['shipment'=>$shipment['id']]);
         self::view('show',['shipment'=>$shipment,'samples'=>ReceptionService::samples((int)$shipment['id']),'boxes'=>ReceptionService::boxes((int)$shipment['id']),'components'=>ReceptionService::shipmentComponents((int)$shipment['id']),'brands'=>$brandStmt->fetchAll(),'pageTitle'=>'Remessa '.$shipment['shipment_code'],'pageSubtitle'=>'Conferência e registro de recebimento']);
     }
 
@@ -39,7 +39,9 @@ final class ReceptionController
             foreach($boxData as $boxId=>$data){$updateBox->execute(['sent'=>$data['sent_temperature'],'received'=>$data['received_temperature'],'user'=>$userId,'box'=>$boxId,'shipment'=>$id]);if($updateBox->rowCount()!==1)throw new \RuntimeException('As caixas da remessa foram alteradas.');}
             $current=ReceptionService::samples($id,true);$newStatus=ReceptionService::calculateShipmentStatus($current);
             $pdo->prepare("UPDATE sample_shipments SET status=:status,received_at=IF(:received_at_status='received',NOW(),NULL),received_by=IF(:received_by_status='received',:received_by_user,NULL),rejected_at=IF(:rejected_at_status='rejected',NOW(),NULL),rejected_by=IF(:rejected_by_status='rejected',:rejected_by_user,NULL) WHERE id=:id")->execute(['status'=>$newStatus,'received_at_status'=>$newStatus,'received_by_status'=>$newStatus,'received_by_user'=>$userId,'rejected_at_status'=>$newStatus,'rejected_by_status'=>$newStatus,'rejected_by_user'=>$userId,'id'=>$id]);
-            Auth::registerAudit('shipment.reception_register','sample_shipments',$id,['status'=>$shipment['status']],['status'=>$newStatus,'decisions'=>$decisions,'boxes'=>$boxData]);$pdo->commit();Flash::set('success',$newStatus==='partially_received'?'Conferência registrada. A remessa permanece em recebimento parcial.':'Conferência registrada com sucesso.');
+            Auth::registerAudit('shipment.reception_register','sample_shipments',$id,['status'=>$shipment['status']],['status'=>$newStatus,'decisions'=>$decisions,'boxes'=>$boxData]);$pdo->commit();
+            if($newStatus==='received'){try{InternalNotificationService::notifyUsers([(int)$shipment['responsible_user_id']],'shipment_received:shipment_'.$id,'Remessa recebida pelo LCQH',$shipment['shipment_code'].' foi recebida pelo LCQH.','/samples/shipments/view?id='.$id,'sample_shipment',$id,$userId,'info');}catch(\Throwable$notificationError){error_log('[BloodHub][reception.notification] shipment_id='.$id.' message='.$notificationError->getMessage());}}
+            Flash::set('success',$newStatus==='partially_received'?'Conferência registrada. A remessa permanece em recebimento parcial.':'Conferência registrada com sucesso.');
         }catch(\Throwable $e){if($pdo->inTransaction())$pdo->rollBack();self::handleFailure($e,'register',$id);}
         self::redirect('/reception');
     }

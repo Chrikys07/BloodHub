@@ -33,8 +33,8 @@ final class ShelfLifeResolver
     {
         $stmt=Database::connection()->prepare('SELECT b.preservative_id,p.code preservative_code,p.name preservative_name FROM bag_brands b LEFT JOIN preservatives p ON p.id=b.preservative_id WHERE b.id=:id'.($lock?' FOR UPDATE':''));
         $stmt->execute(['id'=>$bagBrandId]);$brand=$stmt->fetch(PDO::FETCH_ASSOC);
-        if(!$brand) throw new \DomainException('Referência de bolsa não encontrada.');
-        if(empty($brand['preservative_id'])) throw new \DomainException('A referência da bolsa não possui preservante configurado.');
+        if(!$brand) throw new \DomainException('Marca de bolsa não encontrada.');
+        if(empty($brand['preservative_id'])) throw new \DomainException('A marca de bolsa não possui preservante configurado.');
         $rule=self::resolve($bloodComponentId,(int)$brand['preservative_id'],$lock);
         $date=DateTimeImmutable::createFromFormat('!Y-m-d',$productionDate);
         if(!$date||$date->format('Y-m-d')!==$productionDate) throw new \DomainException('Data de produção inválida.');
