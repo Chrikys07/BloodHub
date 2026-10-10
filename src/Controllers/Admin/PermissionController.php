@@ -9,9 +9,10 @@ use BloodHub\Core\Flash;
 
 final class PermissionController
 {
+    private const PERMISSION = 'admin.permissions.manage';
     public static function index(): void
     {
-        AdminGuard::enforce(); $pdo=Database::connection();
+        AdminGuard::enforce(self::PERMISSION); $pdo=Database::connection();
         $roles=$pdo->query('SELECT id,name FROM roles ORDER BY name')->fetchAll();
         $roleId=filter_input(INPUT_GET,'role_id',FILTER_VALIDATE_INT) ?: (int)($roles[0]['id']??0);
         $permissions=$pdo->query("SELECT id,module,name,permission_key FROM permissions WHERE status='active' ORDER BY module,name")->fetchAll();
@@ -26,7 +27,7 @@ final class PermissionController
     }
     public static function update(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada. Tente novamente.');self::redirect('/admin/permissions');}
         $roleId=filter_var($_POST['role_id']??null,FILTER_VALIDATE_INT);$pdo=Database::connection();
         $s=$pdo->prepare('SELECT id FROM roles WHERE id=:id');$s->execute(['id'=>$roleId]);if(!$roleId||!$s->fetchColumn()){Flash::set('error','Perfil inválido.');self::redirect('/admin/permissions');}

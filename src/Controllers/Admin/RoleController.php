@@ -10,16 +10,17 @@ use PDO;
 
 final class RoleController
 {
+    private const PERMISSION = 'admin.roles.manage';
     public static function index(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         $roles=Database::connection()->query('SELECT r.*,COUNT(u.id) user_count FROM roles r LEFT JOIN users u ON u.role_id=r.id GROUP BY r.id ORDER BY r.name')->fetchAll();
         self::view('index', ['roles'=>$roles,'pageTitle'=>'Perfis']);
     }
-    public static function create(): void { AdminGuard::enforce(); self::form(null,[]); }
-    public static function store(): void { AdminGuard::enforce(); self::save(null); }
-    public static function edit(): void { AdminGuard::enforce(); $r=self::requested(); if(!$r){self::notFound();return;} self::form($r,[]); }
-    public static function update(): void { AdminGuard::enforce(); $r=self::requested(); if(!$r){self::notFound();return;} self::save($r); }
+    public static function create(): void { AdminGuard::enforce(self::PERMISSION); self::form(null,[]); }
+    public static function store(): void { AdminGuard::enforce(self::PERMISSION); self::save(null); }
+    public static function edit(): void { AdminGuard::enforce(self::PERMISSION); $r=self::requested(); if(!$r){self::notFound();return;} self::form($r,[]); }
+    public static function update(): void { AdminGuard::enforce(self::PERMISSION); $r=self::requested(); if(!$r){self::notFound();return;} self::save($r); }
 
     private static function save(?array $current): void
     {

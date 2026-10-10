@@ -10,9 +10,10 @@ use PDO;
 
 final class UserController
 {
+    private const PERMISSION = 'admin.users.manage';
     public static function index(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         $users = Database::connection()->query(
             'SELECT u.id, u.name, u.email, u.status, u.created_at, r.name role_name,
                     c.name client_name, un.name unit_name
@@ -26,19 +27,19 @@ final class UserController
 
     public static function create(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         self::form(null, []);
     }
 
     public static function store(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         self::save(null);
     }
 
     public static function edit(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
         $user = $id ? self::find((int)$id) : null;
         if (!$user) { self::notFound(); return; }
@@ -47,7 +48,7 @@ final class UserController
 
     public static function update(): void
     {
-        AdminGuard::enforce();
+        AdminGuard::enforce(self::PERMISSION);
         $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
         $user = $id ? self::find((int)$id) : null;
         if (!$user) { self::notFound(); return; }

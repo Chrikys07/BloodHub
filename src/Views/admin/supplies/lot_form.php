@@ -1,5 +1,5 @@
-<?php require dirname(__DIR__,2).'/layouts/admin_start.php';$editing=!empty($lot['id']);$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); ?>
-<link rel="stylesheet" href="/assets/css/supplies.css">
+<?php require dirname(__DIR__,2).'/layouts/admin_start.php';$editing=!empty($lot['id']);$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$suppliesCss=dirname(__DIR__,4).'/public/assets/css/supplies.css'; ?>
+<link rel="stylesheet" href="/assets/css/supplies.css?v=<?= filemtime($suppliesCss) ?>">
 <section class="content-card form-card">
 <div class="section-heading"><div><span class="eyebrow">Insumo: <?= $h($supply['name']) ?></span><h2><?= $editing?'Editar lote':'Cadastrar lote' ?></h2><p>Informe validade, recebimento e a situação operacional do lote.</p></div><a class="button button-secondary" href="/admin/supplies/lots?supply_id=<?= (int)$supply['id'] ?>">Voltar</a></div>
 <?php if($errors): ?><div class="alert alert-error"><ul><?php foreach($errors as $error): ?><li><?= $h($error) ?></li><?php endforeach; ?></ul></div><?php endif; ?>

@@ -7,9 +7,10 @@ use PDO;
 
 final class DashboardTargetController
 {
+    private const PERMISSION = 'indicators.config.manage';
     public static function index():void
     {
-        AdminGuard::enforce();$pdo=Database::connection();
+        AdminGuard::enforce(self::PERMISSION);$pdo=Database::connection();
         $components=$pdo->query("SELECT id,code,name FROM blood_components WHERE status='active' ORDER BY code")->fetchAll(PDO::FETCH_ASSOC);
         $tests=$pdo->query("SELECT t.id,t.name,t.code,GROUP_CONCAT(DISTINCT tbc.blood_component_id ORDER BY tbc.blood_component_id) component_ids FROM tests t JOIN test_blood_components tbc ON tbc.test_id=t.id WHERE t.status='active' AND t.is_final_result=1 GROUP BY t.id,t.name,t.code ORDER BY t.name")->fetchAll(PDO::FETCH_ASSOC);
         $targets=$pdo->query("SELECT d.*,bc.code component_code,bc.name component_name,t.name test_name FROM dashboard_conformity_targets d JOIN blood_components bc ON bc.id=d.blood_component_id JOIN tests t ON t.id=d.test_id ORDER BY d.effective_from DESC,bc.code,t.name")->fetchAll(PDO::FETCH_ASSOC);
@@ -19,7 +20,7 @@ final class DashboardTargetController
 
     public static function save():void
     {
-        AdminGuard::enforce();if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada.');self::redirect();}
+        AdminGuard::enforce(self::PERMISSION);if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada.');self::redirect();}
         $id=(int)($_POST['id']??0);$component=(int)($_POST['blood_component_id']??0);$test=(int)($_POST['test_id']??0);$raw=str_replace(',','.',trim((string)($_POST['minimum_percentage']??'')));$from=(string)($_POST['effective_from']??'');$active=($_POST['active']??'1')==='1'?1:0;
         $date=\DateTimeImmutable::createFromFormat('!Y-m-d',$from);$percentage=filter_var($raw,FILTER_VALIDATE_FLOAT);
         $pdo=Database::connection();$eligible=$pdo->prepare("SELECT 1 FROM test_blood_components tbc JOIN tests t ON t.id=tbc.test_id AND t.status='active' AND t.is_final_result=1 WHERE tbc.blood_component_id=:component AND tbc.test_id=:test");$eligible->execute(['component'=>$component,'test'=>$test]);
@@ -34,8 +35,8 @@ final class DashboardTargetController
         }catch(\Throwable $e){if($pdo->inTransaction())$pdo->rollBack();Flash::set('error','Não foi possível salvar a meta: '.$e->getMessage());}self::redirect();
     }
 
-    public static function toggle():void{AdminGuard::enforce();self::csrf();$id=(int)($_POST['id']??0);$active=($_POST['active']??'0')==='1';$pdo=Database::connection();$q=$pdo->prepare('SELECT * FROM dashboard_conformity_targets WHERE id=:id');$q->execute(['id'=>$id]);$old=$q->fetch(PDO::FETCH_ASSOC);if(!$old){Flash::set('error','Meta não encontrada.');self::redirect();}$pdo->prepare('UPDATE dashboard_conformity_targets SET active=:active WHERE id=:id')->execute(['active'=>$active?1:0,'id'=>$id]);Auth::registerAudit($active?'DASHBOARD_CONFORMITY_TARGET_ACTIVATED':'DASHBOARD_CONFORMITY_TARGET_DEACTIVATED','dashboard_conformity_targets',$id,$old,['active'=>$active]);Flash::set('success','Status da meta atualizado.');self::redirect();}
-    public static function delete():void{AdminGuard::enforce();self::csrf();$id=(int)($_POST['id']??0);$pdo=Database::connection();$q=$pdo->prepare('SELECT * FROM dashboard_conformity_targets WHERE id=:id');$q->execute(['id'=>$id]);$old=$q->fetch(PDO::FETCH_ASSOC);if(!$old){Flash::set('error','Meta não encontrada.');self::redirect();}if($old['effective_from']<=date('Y-m-d')){Flash::set('error','Esta meta possui vigência histórica e não pode ser excluída. Inative-a para impedir novos usos.');self::redirect();}$pdo->prepare('DELETE FROM dashboard_conformity_targets WHERE id=:id')->execute(['id'=>$id]);Auth::registerAudit('DASHBOARD_CONFORMITY_TARGET_DELETED','dashboard_conformity_targets',$id,$old,null);Flash::set('success','Meta futura não utilizada excluída.');self::redirect();}
+    public static function toggle():void{AdminGuard::enforce(self::PERMISSION);self::csrf();$id=(int)($_POST['id']??0);$active=($_POST['active']??'0')==='1';$pdo=Database::connection();$q=$pdo->prepare('SELECT * FROM dashboard_conformity_targets WHERE id=:id');$q->execute(['id'=>$id]);$old=$q->fetch(PDO::FETCH_ASSOC);if(!$old){Flash::set('error','Meta não encontrada.');self::redirect();}$pdo->prepare('UPDATE dashboard_conformity_targets SET active=:active WHERE id=:id')->execute(['active'=>$active?1:0,'id'=>$id]);Auth::registerAudit($active?'DASHBOARD_CONFORMITY_TARGET_ACTIVATED':'DASHBOARD_CONFORMITY_TARGET_DEACTIVATED','dashboard_conformity_targets',$id,$old,['active'=>$active]);Flash::set('success','Status da meta atualizado.');self::redirect();}
+    public static function delete():void{AdminGuard::enforce(self::PERMISSION);self::csrf();$id=(int)($_POST['id']??0);$pdo=Database::connection();$q=$pdo->prepare('SELECT * FROM dashboard_conformity_targets WHERE id=:id');$q->execute(['id'=>$id]);$old=$q->fetch(PDO::FETCH_ASSOC);if(!$old){Flash::set('error','Meta não encontrada.');self::redirect();}if($old['effective_from']<=date('Y-m-d')){Flash::set('error','Esta meta possui vigência histórica e não pode ser excluída. Inative-a para impedir novos usos.');self::redirect();}$pdo->prepare('DELETE FROM dashboard_conformity_targets WHERE id=:id')->execute(['id'=>$id]);Auth::registerAudit('DASHBOARD_CONFORMITY_TARGET_DELETED','dashboard_conformity_targets',$id,$old,null);Flash::set('success','Meta futura não utilizada excluída.');self::redirect();}
     private static function csrf():void{if(!Csrf::validate($_POST['_csrf']??null)){Flash::set('error','Sessão expirada.');self::redirect();}}
 
     private static function redirect():never{header('Location: /admin/dashboard-targets');exit;}
